@@ -84,15 +84,27 @@ def test_stop_and_no_concurrent_run(app, until, fake_engine):
 
 
 def test_start_failure_cleans_up(app, until, tmp_path, monkeypatch):
+    from mailbox_sync import runner as runner_module
+
+    created = []
+    make_temp = runner_module.tempfile.TemporaryDirectory
+
+    def track_temp(*args, **kwargs):
+        temporary = make_temp(*args, **kwargs)
+        created.append(Path(temporary.name))
+        return temporary
+
+    monkeypatch.setattr(runner_module.tempfile, "TemporaryDirectory", track_temp)
     monkeypatch.setattr("mailbox_sync.runner.command", lambda *args: (str(tmp_path / "missing.exe"), []))
     runner = Runner()
     results = []
     runner.done.connect(lambda ok, msg: results.append((ok, msg)))
     runner.start(plan(), Mode.LOGIN, ("secret", "destination-secret"))
-    folder = runner._temp.name
     until(lambda: bool(results))
+    assert len(created) == 1
     assert not results[0][0]
-    assert not Path(folder).exists()
+    assert not created[0].exists()
+    assert runner._temp is None
     assert not runner.active
     assert not runner.process.processEnvironment().contains("IMAPSYNC_PASSWORD1")
 

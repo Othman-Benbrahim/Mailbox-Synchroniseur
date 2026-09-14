@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mailbox-synchroniseur"
-version = "0.1.0a1"
+version = "0.2.0a1"
 description = "Application de bureau française pour piloter imapsync"
 requires-python = ">=3.11"
 dependencies = ["PySide6>=6.8,<7"]
@@ -12,6 +12,7 @@ license = "MIT"
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]
+integration = ["pymap==0.36.7"]
 
 [project.gui-scripts]
 mailbox-synchroniseur = "mailbox_sync.__main__:main"
@@ -22,3 +23,4 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = ["integration: real imapsync with isolated IMAP servers (opt-in)"]

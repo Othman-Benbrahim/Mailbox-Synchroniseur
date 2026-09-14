@@ -95,3 +95,11 @@ ou notarisation qui n'a pas été réalisée.
 
 Synchronisation bidirectionnelle de deux boîtes actives ; contacts et calendriers ;
 archive locale EML/MBOX ; service web hébergé. Ces besoins nécessitent un autre lot.
+
+## Suivi de la livraison v0.2 alpha 1
+
+Le périmètre et l'ordre du plan version 1 sont conservés. La sélection/mise en
+correspondance des dossiers et le bilan sont implémentés. Les essais du moteur
+réel sur serveurs isolés passent ; détails et preuves dans STATUS.md et
+`docs/INTEGRATION.md`. Le refus APPEND d'un serveur à quota strict reste à qualifier :
+la phase 2 demeure ouverte, sans commencer la phase 3.

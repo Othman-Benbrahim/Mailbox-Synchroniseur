@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.1.0 alpha 1
+# Mailbox Synchroniseur — 0.2.0 alpha 1
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -6,19 +6,36 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 
 ![Interface de la version alpha](docs/interface-alpha.png)
 
-## Ce que cette première version permet
+## Fonctionnalités
 
 - Configurer source et destination, TLS direct ou STARTTLS.
 - Enregistrer/ouvrir un profil sans les mots de passe ; inverser les comptes.
-- Piloter un imapsync installé : tester les accès, simuler, puis copier tous les dossiers.
+- Piloter un imapsync installé : tester les accès, simuler, puis copier tous les dossiers ou une sélection explicite.
+- Renommer les dossiers à destination, y compris les dossiers Unicode et imbriqués.
+- Lire un bilan : copiés, ignorés, erreurs et présence des messages identifiés à destination.
 - Arrêter un processus ; relancer une simulation avant reprise.
 - Lire un journal de session avec masquage des mots de passe connus.
 
 La copie est déverrouillée après une simulation réussie. Toute modification des
-comptes, ports, mots de passe ou chemin du moteur invalide cette simulation.
+comptes, ports, mots de passe, dossiers ou chemin du moteur invalide cette simulation.
 Le chargement d'un profil efface les secrets et oblige à sélectionner de nouveau
 l'exécutable local : le fichier du profil n'autorise pas l'exécution d'un programme.
 Le journal affiche les sorties du moteur, principalement en anglais.
+
+## Dossiers et bilan
+
+Dans « Dossiers à copier », cocher la sélection limitée et ajouter les noms source
+exacts. Renseigner éventuellement une destination différente. Les noms Unicode sont
+convertis en UTF-7 modifié IMAP. Les collisions dans la sélection sont refusées.
+Refaire une simulation après toute modification et consulter le journal avant copie.
+
+![Sélection des dossiers](docs/dossiers-phase2.png)
+
+Le bilan reprend les compteurs publiés par imapsync 2.314. Un compteur absent vaut
+« non communiqué ». La présence confirmée concerne les messages identifiés par le
+moteur dans le périmètre choisi ; ce n'est pas un contrôle SHA-256 de chaque boîte
+réalisé par l'application. Ce contrôle SHA-256 appartient à la suite de tests.
+Après un arrêt ou une erreur, la présence complète n'est jamais annoncée.
 
 ## Windows : lancement depuis les sources
 
@@ -65,16 +82,22 @@ sans Python ni Perl préinstallés figurent dans la phase 6.
 Le moteur doit prendre en charge les mots de passe `IMAPSYNC_PASSWORD1/2` dans son
 environnement et les options documentées dans `docs/ARCHITECTURE.md`. Le contrat
 utilisé est celui de la documentation officielle consultée pour cette livraison ;
-aucune version de moteur réelle n'a encore été certifiée avec l'application.
+la version **2.314** a été testée sous Linux avec GreenMail 2.1.3 (TLS direct) et pymap 0.36.7 (STARTTLS).
+Voir [les essais reproductibles et leurs limites](docs/INTEGRATION.md).
 
 ## Limites actuelles
 
-Alpha de développement, pas encore un outil validé pour une migration importante.
-Les tests fournis exécutent un faux moteur local ; ils ne valident pas le transfert
-réel des messages. La phase 2 est consacrée aux tests IMAP réels, à la reprise et à
-la comparaison source/destination.
+Alpha de développement. Des transferts réels sont maintenant vérifiés sur des
+comptes jetables locaux : contenu MIME et pièces jointes par SHA-256, dates, états,
+reprise après coupure TCP et absence de recopies sur les fixtures.
+La compatibilité Windows, Gmail et Microsoft 365 n'est pas encore validée.
+Le cas du quota annoncé plein est testé ; le refus effectif d'un APPEND par un
+serveur à quota strict reste à qualifier. La phase 2 reste ouverte sur ce point.
 
-- Copie de tous les dossiers ; sélection et correspondance à venir.
+- Sélection manuelle par noms exacts ; pas de découverte automatique des dossiers.
+- Ajouter chaque sous-dossier séparément. La destination vide conserve le nom source.
+- Les profils v1 restent lisibles ; les nouveaux profils v2 mémorisent les dossiers.
+- Un ancien lecteur v0.1 ne peut pas ouvrir les profils v2.
 - Pas de miroir, déplacement, synchronisation bidirectionnelle, contacts ou calendriers.
 - Pas de sauvegarde de mot de passe, OAuth, planification ni installateur autonome.
 - Progression indéterminée : pas de pourcentage ou temps restant inventé.
@@ -97,6 +120,10 @@ python -m pytest -q
 ```
 
 Sur une machine Linux sans affichage : `QT_QPA_PLATFORM=offscreen python -m pytest -q`.
-Les tests du moteur simulé n'utilisent aucune boîte mail ni aucun accès utilisateur.
+Sans activation explicite, les essais IMAP sont ignorés ; le socle et l'interface
+sont vérifiés avec le moteur simulé. Les essais réels nécessitent les dépendances
+de [docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
+Le workflow GitHub Actions prévoit le socle sous Linux/Windows et les essais IMAP
+sous Linux ; ses résultats ne sont connus qu'après son exécution sur GitHub.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.

@@ -3,7 +3,8 @@ import codecs
 import tempfile
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, Signal
 from .engine import Redactor, command, outcome
-from .models import validate_passwords
+from .models import Mode, validate_passwords
+from .report import MigrationReport
 
 
 class Runner(QObject):
@@ -29,10 +30,12 @@ class Runner(QObject):
         self._discard = False
         self._redactor = Redactor()
         self._decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        self.report = MigrationReport()
 
     def start(self, plan, mode, passwords):
         if self.active:
             raise ValueError("Une opération est déjà en cours.")
+        self.report = MigrationReport(mode=Mode(mode))
         validate_passwords(passwords)
         program, args = command(plan, mode)
         self._temp = tempfile.TemporaryDirectory(prefix="mailbox-run-")
@@ -76,9 +79,13 @@ class Runner(QObject):
                     self.line.emit("[Ligne de journal trop longue omise]")
             if ended:
                 if not self._discard:
-                    self.line.emit(self._redactor.clean(self._buffer))
+                    self._emit_line(self._buffer)
                 self._buffer = ""
                 self._discard = False
+
+    def _emit_line(self, text):
+        self.report.feed(text)
+        self.line.emit(self._redactor.clean(text))
 
     def _read(self):
         self._consume(self._decoder.decode(bytes(self.process.readAllStandardOutput())))
@@ -93,7 +100,10 @@ class Runner(QObject):
         self._read()
         self._consume(self._decoder.decode(b"", final=True))
         if self._buffer and not self._discard:
-            self.line.emit(self._redactor.clean(self._buffer))
+            self._emit_line(self._buffer)
+        self.report.exit_code = code
+        self.report.cancelled = self.cancelled
+        self.report.crashed = status == QProcess.ExitStatus.CrashExit
         if self.cancelled:
             self._complete(False, "Opération arrêtée. Une copie peut être partielle ; refais une simulation avant de reprendre.")
         elif status == QProcess.ExitStatus.CrashExit:
@@ -104,6 +114,10 @@ class Runner(QObject):
     def _complete(self, ok, message):
         if not self.active:
             return
+        if ok and (self.report.errors or (self.report.mode == Mode.COPY and
+                                          (self.report.missing or self.report.unidentified))):
+            ok = False
+            message = "Le bilan signale des erreurs ou des messages non transférés. Consulte le journal."
         self.kill_timer.stop()
         self.active = False
         self.process.setProcessEnvironment(QProcessEnvironment())
