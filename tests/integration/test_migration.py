@@ -1,0 +1,266 @@
+"""Runs the actual Perl engine over TLS to independent GreenMail servers."""
+from dataclasses import replace
+from email.message import EmailMessage
+from email.policy import SMTP
+import hashlib
+import imaplib
+import os
+import re
+import subprocess
+import pytest
+from mailbox_sync.engine import command
+from mailbox_sync.folders import imap_utf7
+from mailbox_sync.models import Account, FolderMapping, Mode, Plan
+from mailbox_sync.report import MigrationReport
+from mailbox_sync.runner import Runner
+
+pytestmark = pytest.mark.integration
+PASSWORD = "mailbox-test-password"
+DATE = '"14-Sep-2020 13:20:00 +0000"'
+
+
+def plan(pair, **options):
+    source, destination, engine = pair
+    return Plan(Account("localhost", "test", source.port, source.security),
+                Account("localhost", "test", destination.port, destination.security), engine, **options)
+
+
+def message(index, attachment=True):
+    msg = EmailMessage(policy=SMTP)
+    msg["From"] = "source@example.invalid"
+    msg["To"] = "destination@example.invalid"
+    msg["Subject"] = f"Message {index} — accents é et 日本語"
+    msg["Message-ID"] = f"<fixture-{index}@example.invalid>"
+    msg["Date"] = "Mon, 14 Sep 2020 13:20:00 +0000"
+    msg.set_content("Texte UTF-8 : café, été, 日本語.\n")
+    if attachment:
+        msg.add_attachment(bytes(range(256)) * 64, maintype="application", subtype="octet-stream", filename="données.bin")
+    return msg.as_bytes()
+
+
+def quoted(folder):
+    return '"' + imap_utf7(folder).replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def seed(server, folder="INBOX", count=3, offset=0):
+    client = server.connect()
+    try:
+        if folder != "INBOX":
+            assert client.create(quoted(folder))[0] == "OK"
+        for index in range(count):
+            flags = ("(\\Seen \\Flagged)", "(\\Answered)", "(\\Deleted)")[index % 3]
+            assert client.append(quoted(folder), flags, DATE, message(index + offset))[0] == "OK"
+    finally:
+        client.logout()
+
+
+def snapshot(server, folder="INBOX"):
+    client = server.connect()
+    try:
+        if client.select(quoted(folder), readonly=True)[0] != "OK":
+            return []
+        status, data = client.search(None, "ALL")
+        assert status == "OK"
+        result = []
+        for uid in data[0].split():
+            status, fetched = client.fetch(uid, "(BODY.PEEK[] FLAGS INTERNALDATE)")
+            assert status == "OK"
+            literal = next(item for item in fetched if isinstance(item, tuple))
+            metadata = b" ".join(item[0] if isinstance(item, tuple) else item for item in fetched)
+            flags = set(imaplib.ParseFlags(metadata)) - {b"\\Recent"}
+            date = re.search(rb'INTERNALDATE "([^"]+)"', metadata)[1]
+            result.append((hashlib.sha256(literal[1]).hexdigest(), flags, date))
+        return result
+    finally:
+        client.logout()
+
+
+def run_sync(p, mode=Mode.COPY, password1=PASSWORD, password2=PASSWORD, environment=None, cwd=None):
+    executable, arguments = command(p, mode)
+    env = dict(os.environ, IMAPSYNC_PASSWORD1=password1, IMAPSYNC_PASSWORD2=password2)
+    if environment:
+        env.update(environment)
+    result = subprocess.run([executable, *arguments], env=env, cwd=cwd, capture_output=True,
+                            text=True, encoding="utf-8", errors="replace", timeout=45)
+    report = MigrationReport(mode=mode, exit_code=result.returncode)
+    for line in result.stdout.splitlines():
+        report.feed(line)
+    return result, report
+
+
+def test_copy_integrity_flags_dates_no_deletion_and_no_duplicates(pair, tmp_path):
+    source, destination, _ = pair
+    seed(source)
+    seed(destination, count=1, offset=100)
+    before_source, before_dest = snapshot(source), snapshot(destination)
+    preview, _ = run_sync(plan(pair), Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert snapshot(source) == before_source
+    assert snapshot(destination) == before_dest
+    copied, report = run_sync(plan(pair), cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert snapshot(source) == before_source
+    expected = before_dest + [(digest, flags - {b"\\Deleted"}, date) for digest, flags, date in before_source]
+    assert snapshot(destination) == expected
+    assert report.transferred == 3
+    assert report.destination_confirmed
+    repeated, report = run_sync(plan(pair), cwd=tmp_path)
+    assert repeated.returncode == 0, repeated.stdout + repeated.stderr
+    assert report.transferred == 0
+    assert snapshot(destination) == expected
+
+
+def test_unicode_nested_selection_and_mapping(pair, tmp_path):
+    source, destination, _ = pair
+    seed(source, count=1)
+    seed(source, "Archives/Été & 日本語", count=2, offset=20)
+    p = plan(pair, folders=(FolderMapping("Archives/Été & 日本語", "Copie/Été & 日本語"),))
+    before = snapshot(source, "Archives/Été & 日本語")
+    copied, report = run_sync(p, cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert snapshot(destination) == []
+    assert snapshot(destination, "Copie/Été & 日本語") == before
+    assert snapshot(source, "Archives/Été & 日本語") == before
+    assert report.transferred == 2
+
+
+@pytest.mark.parametrize("side", [1, 2])
+def test_bad_password_refused(pair, tmp_path, side):
+    result, _ = run_sync(plan(pair), Mode.LOGIN, cwd=tmp_path, **{f"password{side}": "wrong"})
+    assert result.returncode in (16, 161, 162), result.stdout + result.stderr
+    assert snapshot(pair[1]) == []
+
+
+@pytest.mark.parametrize("failure", ["certificate", "hostname"])
+@pytest.mark.parametrize("security", ["SSL", "STARTTLS"])
+def test_tls_refusals(request, tmp_path, failure, security):
+    pair = request.getfixturevalue("pair" if security == "SSL" else "starttls_pair")
+    p = plan(pair)
+    options = {}
+    if security == "STARTTLS":
+        p = replace(p, source=replace(p.source, port=pair[0].tls_port, security=security))
+    if failure == "certificate":
+        options["environment"] = {"SSL_CERT_FILE": "/etc/ssl/certs/ca-certificates.crt"}
+    else:
+        p = replace(p, source=replace(p.source, host="127.0.0.1"))
+    result, report = run_sync(p, Mode.LOGIN, cwd=tmp_path, **options)
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert not report.destination_confirmed
+    assert snapshot(pair[1]) == []
+
+
+def test_starttls_copy(starttls_pair, tmp_path):
+    pair = starttls_pair
+    p = plan(pair)
+    p = replace(p, source=replace(p.source, port=pair[0].tls_port, security="STARTTLS"),
+                destination=replace(p.destination, port=pair[1].tls_port, security="STARTTLS"))
+    seed(pair[0], count=1)
+    result, report = run_sync(p, cwd=tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert report.transferred == 1
+    assert snapshot(pair[1]) == snapshot(pair[0])
+
+
+def test_server_announces_full_quota(pair, app, until):
+    seed(pair[0], count=1)
+    seed(pair[1], count=1, offset=100)
+    before = snapshot(pair[1])
+    client = pair[1].connect()
+    try:
+        assert client.setquota('INBOX', '(STORAGE 1)')[0] == "OK"
+    finally:
+        client.logout()
+    # GreenMail reports usage, but does not enforce APPEND refusal. Verify the
+    # real engine reports this quota failure even if some messages were accepted.
+    runner = Runner()
+    results = []
+    runner.done.connect(lambda ok, text: results.append((ok, text)))
+    runner.start(plan(pair), Mode.COPY, (PASSWORD, PASSWORD))
+    try:
+        until(lambda: bool(results), seconds=45)
+        assert not results[0][0], results
+        assert runner.report.errors > 0
+        assert not runner.report.destination_confirmed
+        assert snapshot(pair[1])[:len(before)] == before
+    finally:
+        if runner.active:
+            runner.stop()
+            until(lambda: not runner.active, seconds=5)
+
+
+def test_real_qprocess_runner(pair, app, until):
+    seed(pair[0], count=1)
+    runner = Runner()
+    results = []
+    runner.done.connect(lambda ok, text: results.append((ok, text)))
+    runner.start(plan(pair), Mode.COPY, (PASSWORD, PASSWORD))
+    try:
+        until(lambda: bool(results), seconds=45)
+        assert results[0][0], results
+        assert runner.report.transferred == 1
+        assert runner.report.destination_confirmed
+        assert snapshot(pair[1]) == snapshot(pair[0])
+    finally:
+        if runner.active:
+            runner.stop()
+            until(lambda: not runner.active, seconds=5)
+
+
+def test_resume_after_real_network_interruption(pair, app, until, tmp_path, monkeypatch):
+    from PySide6.QtCore import QTimer
+    from relay import Relay
+    seed(pair[0], count=6)
+    before = snapshot(pair[0])
+    relay = Relay(pair[0].port)
+    p = plan(pair)
+    routed = replace(p, source=replace(p.source, port=relay.port))
+    real_command = command
+    def slow_command(plan, mode):
+        executable, args = real_command(plan, mode)
+        return executable, args + ["--maxmessagespersecond", "1"]
+    monkeypatch.setattr("mailbox_sync.runner.command", slow_command)
+    runner = Runner()
+    results, interrupted = [], []
+    timer = QTimer()
+    timer.setSingleShot(True)
+    timer.timeout.connect(runner.stop)
+    def on_line(line):
+        if " copied to " in line and not interrupted:
+            interrupted.append(True)
+            relay.cut()
+            # The actual TCP stream is gone. Bound the engine's retry interval.
+            timer.start(500)
+    runner.line.connect(on_line)
+    runner.done.connect(lambda ok, text: results.append((ok, text)))
+    runner.start(routed, Mode.COPY, (PASSWORD, PASSWORD))
+    try:
+        until(lambda: bool(results), seconds=30)
+        assert interrupted, "No transferred message observed before interruption"
+        partial = snapshot(pair[1])
+        assert 0 < len(partial) < len(before)
+        assert not runner.report.destination_confirmed
+        assert snapshot(pair[0]) == before
+    finally:
+        timer.stop()
+        relay.cut()
+        if runner.active:
+            runner.stop()
+            until(lambda: not runner.active, seconds=5)
+    preview, _ = run_sync(p, Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    resumed, report = run_sync(p, cwd=tmp_path)
+    assert resumed.returncode == 0, resumed.stdout + resumed.stderr
+    assert report.destination_confirmed
+    assert report.transferred == len(before) - len(partial)
+    expected = [(digest, flags - {b"\\Deleted"}, date) for digest, flags, date in before]
+    assert snapshot(pair[1]) == expected
+    assert snapshot(pair[0]) == before
+
+
+def test_starttls_unavailable_never_falls_back_to_cleartext(pair, tmp_path):
+    p = plan(pair)
+    p = replace(p, source=replace(p.source, port=pair[0].tls_port, security="STARTTLS"))
+    result, _ = run_sync(p, Mode.LOGIN, cwd=tmp_path)
+    assert result.returncode == 12, result.stdout + result.stderr
+    assert "Can not go to tls encryption on host1" in result.stdout
+    assert snapshot(pair[1]) == []

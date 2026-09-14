@@ -4,6 +4,7 @@ import base64
 import re
 from urllib.parse import quote
 from .models import Mode, Plan
+from .folders import imap_utf7
 
 
 def command(plan: Plan, mode: Mode) -> tuple[str, list[str]]:
@@ -27,6 +28,11 @@ def command(plan: Plan, mode: Mode) -> tuple[str, list[str]]:
         args += ["--justlogin"]
     elif mode == Mode.PREVIEW:
         args += ["--dry"]
+    if mode != Mode.LOGIN and plan.folders is not None:
+        for folder in plan.folders:
+            source = imap_utf7(folder.source)
+            destination = imap_utf7(folder.destination or folder.source)
+            args += ["--folder", source, "--f1f2", f"{source}={destination}"]
     return str(engine), args
 
 

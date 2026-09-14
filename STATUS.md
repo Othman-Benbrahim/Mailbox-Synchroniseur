@@ -1,48 +1,50 @@
-# État du projet — 0.1.0 alpha 1
+# État du projet — 0.2.0 alpha 1
 
-Livraison initiale associée à la roadmap version 1 du 14 septembre 2026.
+Reprise du dépôt GitHub initial `Othman-Benbrahim/Mailbox-Synchroniseur`, commit
+`eedaa95843118c4d2ed23ec791cf50f319ce00ae`. Cette livraison prolonge ce socle.
 
 | Phase | État | Preuve / suite |
 | --- | --- | --- |
-| 0 — Cadrage | Terminée | ROADMAP.md, ARCHITECTURE.md, licence et structure modulaire |
-| 1 — Application exécutable | Terminée au niveau du socle alpha | Installation Python réussie, fenêtre ouverte, 36 tests réussis |
-| 2 — Migrations vérifiées | Prochaine étape | Moteur réel et serveurs IMAP isolés à installer ; aucun transfert réel validé |
-| 3 — Fonctions avancées | À faire | Après validation de la phase 2 |
+| 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
+| 1 — Application exécutable | Socle alpha conservé | Tests existants maintenus, interface Qt ouverte |
+| 2 — Migrations vérifiées | Implémentée, qualification encore partielle | 13 tests IMAP réels réussis ; refus APPEND par quota strict restant |
+| 3 — Fonctions avancées | À faire | Attendre la fermeture du jalon 2 |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
 
-## Vérifications effectuées
+## Fonctionnalités livrées
 
-Environnement : Linux, Python 3.12, PySide6 6.11.2, pytest 9.1.1.
-Commande : `QT_QPA_PLATFORM=offscreen python -m pytest tests -q`.
-Résultat final : **36 passed in 1.55s**.
+- Onglet de sélection explicite des dossiers et correspondance source/destination.
+- Noms Unicode et sous-dossiers ; destination vide = même nom ; collisions refusées.
+- Profils JSON v2 sans mots de passe, compatibilité de lecture v1.
+- Toute modification du périmètre invalide la simulation ; inversion des mappings
+  avec les comptes ; configuration désactivée durant l'exécution.
+- Bilan du moteur : copiés, ignorés, erreurs, absents et confirmation conditionnelle
+  de présence à destination. Données absentes affichées « non communiqué ».
+- Tests d'intégration reproductibles et workflow GitHub Actions ajouté.
 
-- Construction et installation éditable du paquet réussies.
-- Ouverture effective de la fenêtre Qt ; capture inspectée : docs/interface-alpha.png.
-- Validation des hôtes, ports, mêmes comptes, identifiants et modes TLS.
-- Commandes sans options de suppression ni mots de passe en arguments.
-- Filtrage de l'indicateur Deleted, expunges et resynchronisation des états désactivés.
-- Profils atomiques sans secrets ; profils incorrects refusés ; chemin d'exécutable
-  non accepté automatiquement lors du chargement d'un profil.
-- Processus enfant réel avec moteur simulé : succès, échec d'authentification,
-  échec de démarrage, arrêt, prévention d'une deuxième exécution simultanée.
-- Mots de passe masqués même lorsque leur sortie arrive en plusieurs fragments ;
-  lignes trop longues omises ; nettoyage des fichiers temporaires.
-- Parcours GUI : test d'accès, simulation, déverrouillage de la copie, invalidation
-  après changement de mot de passe, copie, rétablissement après échec de démarrage.
+## Preuves locales
 
-## Limites de ces preuves
+Linux, Python 3.12, PySide6 6.11.2, pytest 9.1.1, imapsync 2.314,
+GreenMail 2.1.3 et pymap 0.36.7 : **69 tests réussis en 68,49 s**, dont 56 tests du
+socle/interface et 13 essais IMAP réels. Voir `docs/validation-phase2.xml` et
+`docs/INTEGRATION.md` pour la méthode, les versions et les commandes.
+Les fixtures comparent les SHA-256 MIME, pièces jointes, dates et états. La coupure
+réseau réelle, la reprise sans recopies, les refus TLS et d'identifiants sont vérifiés.
+La construction/installation éditable 0.2.0a1 et le téléchargement vérifié des
+outils de test ont réussi. Les deux onglets de l'interface ont été ouverts et leurs captures inspectées.
 
-Les tests utilisent un **moteur simulé**, exécuté via QProcess. Aucun imapsync réel
-ni serveur IMAP n'a été utilisé. Le passage des options TLS est testé ; leur effet
-sur une négociation réelle n'a pas encore été vérifié. Aucun message utilisateur
-n'a été lu, copié ou supprimé. Pas de validation Windows/macOS à ce stade.
-Le lanceur Windows est fourni sous forme de BAT ; il n'est pas un installateur.
+Les mots de passe restent absents des arguments du moteur, profils et journal
+filtré. Les expunges, suppressions et resynchronisations d'états restent désactivés.
 
-## Prochaine action conforme à la roadmap
+## Limites et prochain jalon
 
-Commencer la phase 2 : figer une version du moteur réel, monter deux serveurs IMAP
-isolés avec certificats de test et fixtures MIME, vérifier intégrité et reprise,
-puis ajouter la sélection et la correspondance des dossiers ainsi que le bilan.
-Ne pas avancer aux options destructrices avant la réussite de ce jalon.
+Le test de quota vérifie un quota annoncé plein et le statut d'échec du moteur.
+GreenMail continue d'accepter APPEND : il reste à tester un serveur appliquant un
+quota strict et refusant effectivement l'ajout. **La phase 2 n'est donc pas déclarée
+entièrement terminée.** Ne pas passer aux modes destructeurs de phase 3.
+
+Windows/macOS, fournisseurs réels, gros volumes et installateur autonome ne sont
+pas validés. Le workflow CI est fourni ; aucun résultat GitHub Actions n'est revendiqué.
+Les contrôles SHA-256 appartiennent aux tests, pas au bilan affiché par l'application.

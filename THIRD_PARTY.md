@@ -12,6 +12,16 @@ Le code original de Mailbox Synchroniseur est sous licence MIT.
 - Python et bibliothèque standard : licence PSF, https://docs.python.org/3/license.html
 - pytest : dépendance de développement, MIT, https://github.com/pytest-dev/pytest
 
-Aucun binaire tiers n'est embarqué dans la livraison de sources v0.1. La phase de
+Aucun binaire tiers n'est embarqué dans la livraison de sources v0.2. La phase de
 packaging devra fournir les notices, textes et obligations correspondant aux
 composants effectivement distribués.
+
+Dépendances des essais IMAP uniquement, téléchargées séparément :
+
+- GreenMail standalone 2.1.3, Apache-2.0 : https://github.com/greenmail-mail-test/greenmail
+- pymap 0.36.7, MIT : https://github.com/icgood/pymap
+- Java / OpenJDK et OpenSSL : outils du système de test, non embarqués.
+
+Les sources et empreintes des téléchargements du moteur et de GreenMail sont dans
+`scripts/prepare_integration.py`. Ces outils ne sont ni installés ni exécutés par
+le lancement normal de l'application. Aucun serveur IMAP ne fait partie du produit.

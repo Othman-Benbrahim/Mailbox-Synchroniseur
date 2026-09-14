@@ -1,16 +1,17 @@
-"""A profile is an explicit allowlist; secrets never enter the serializer."""
+"""Versioned, atomic, secret-free profile persistence (v1 remains readable)."""
 from dataclasses import asdict
 import json
 import os
 from pathlib import Path
 import tempfile
-from .models import Account, Plan
+from .models import Account, FolderMapping, Plan
 
 
 def save_profile(path: Path, plan: Plan):
     plan.validate()
-    content = {"version": 1, "source": asdict(plan.source),
-               "destination": asdict(plan.destination), "engine": plan.engine}
+    content = {"version": 2, "source": asdict(plan.source), "destination": asdict(plan.destination),
+               "engine": plan.engine,
+               "folders": None if plan.folders is None else [asdict(f) for f in plan.folders]}
     fd, temp = tempfile.mkstemp(prefix=".mailbox-", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as out:
@@ -28,9 +29,18 @@ def load_profile(path: Path) -> Plan:
         raise ValueError("Profil trop volumineux.")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        if set(data) != {"version", "source", "destination", "engine"} or data["version"] != 1:
+        base = {"version", "source", "destination", "engine"}
+        if type(data["version"]) is not int:
+            raise ValueError("Version de profil invalide.")
+        if data["version"] == 1 and set(data) == base:
+            folders = None
+        elif data["version"] == 2 and set(data) == base | {"folders"}:
+            if data["folders"] is not None and not isinstance(data["folders"], list):
+                raise ValueError("Liste de dossiers invalide.")
+            folders = None if data["folders"] is None else tuple(FolderMapping(**item) for item in data["folders"])
+        else:
             raise ValueError("Format de profil non reconnu.")
-        plan = Plan(Account(**data["source"]), Account(**data["destination"]), data["engine"])
+        plan = Plan(Account(**data["source"]), Account(**data["destination"]), data["engine"], folders)
         plan.validate()
         return plan
     except (TypeError, KeyError, AttributeError, UnicodeError, json.JSONDecodeError) as exc:

@@ -45,10 +45,26 @@ class Account:
 
 
 @dataclass(frozen=True)
+class FolderMapping:
+    source: str
+    destination: str = ""
+
+    def validate(self):
+        if not isinstance(self.destination, str):
+            raise ValueError("Nom de dossier destination invalide.")
+        for name in (self.source, self.destination or self.source):
+            if not isinstance(name, str) or not name.strip() or name.startswith("-") or any(ord(c) < 32 for c in name):
+                raise ValueError("Renseigne des noms de dossiers valides.")
+        if "=" in self.source:
+            raise ValueError("Un nom de dossier source contenant = n'est pas pris en charge en sélection manuelle.")
+
+
+@dataclass(frozen=True)
 class Plan:
     source: Account
     destination: Account
     engine: str
+    folders: tuple[FolderMapping, ...] | None = None
 
     def validate(self):
         self.source.validate()
@@ -59,6 +75,21 @@ class Plan:
             raise ValueError("La source et la destination désignent le même compte.")
         if not self.engine.strip():
             raise ValueError("Sélectionne l'exécutable imapsync dans la configuration.")
+
+        if self.folders is not None:
+            if not isinstance(self.folders, tuple) or not self.folders:
+                raise ValueError("Ajoute au moins un dossier ou sélectionne tous les dossiers.")
+            sources, destinations = set(), set()
+            for folder in self.folders:
+                if not isinstance(folder, FolderMapping):
+                    raise ValueError("Correspondance de dossiers invalide.")
+                folder.validate()
+                source = folder.source.casefold()
+                destination = (folder.destination or folder.source).casefold()
+                if source in sources or destination in destinations:
+                    raise ValueError("Chaque dossier source et destination doit être unique dans la sélection.")
+                sources.add(source)
+                destinations.add(destination)
 
 
 def validate_passwords(passwords):
