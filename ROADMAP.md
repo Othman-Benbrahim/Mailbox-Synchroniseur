@@ -240,3 +240,24 @@ raison, conformément à la règle de suivi.
 Réouverture possible de la phase 4 : si une identité d'application embarquée au nom du
 mainteneur est décidée — elle l'engage personnellement auprès du fournisseur — ou si
 Microsoft rétablit un chemin d'inscription accessible aux comptes personnels.
+
+## Suivi de la livraison v0.6 alpha 1 — 15 septembre 2026 (phase 6)
+
+Chaîne d'empaquetage Windows complète : moteur imapsync construit depuis la source amont,
+application empaquetée par PyInstaller, installateur Inno Setup, le tout par la CI.
+
+Vérification préalable consignée : la licence NLPL d'imapsync autorise explicitement la
+redistribution d'un binaire construit soi-même. C'était la condition de possibilité de
+cette phase ; sans elle, l'installateur n'aurait pu embarquer le moteur.
+
+Résultat des deux premiers runs : la construction d'imapsync par PAR::Packer, annoncée comme
+le point le plus incertain, a réussi du premier coup. C'est la compilation de l'installateur
+qui a échoué, sur une erreur de syntaxe PowerShell de l'auteur, corrigée au run suivant. Les
+trois artefacts sont produits depuis le commit `47dc8686`, et l'installateur a été essayé
+avec succès sur une machine Windows de développement.
+
+Il reste la condition qui décide : une installation sur une machine dépourvue de Python et de
+Perl. Tant qu'elle n'est pas faite, STATUS.md ne consigne pas la phase 6 comme terminée.
+
+Restent hors périmètre de cette livraison : signature et notarisation des binaires (aucune
+n'est annoncée), paquets Linux et macOS, procédure de mise à jour automatique.

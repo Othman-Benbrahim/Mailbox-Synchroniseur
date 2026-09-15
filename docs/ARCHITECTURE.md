@@ -17,6 +17,7 @@
 - `oauth.py` : flux OAuth code+PKCE sur boucle locale, sans identité embarquée (lot 4a).
 - `oauth_worker.py` : exécution du flux hors du fil d'interface (lot 4a).
 - `theme.py` : palette claire explicite, indépendante du thème du système.
+- `bundle.py` : localisation du moteur livré à côté de l'application empaquetée.
 - `report.py` : compteurs observés et conditions de confirmation de destination.
 - `ui.py` : source/destination, simulation préalable, exécution et bilan.
 
@@ -233,3 +234,34 @@ contraste tiennent (texte courant, texte désactivé, ligne sélectionnée) selo
 luminance relative WCAG, et qu'aucune famille de widgets n'est laissée sans couleurs. Le
 journal et les zones de sortie gardent leur fond sombre volontaire, désigné par
 `objectName("log")` plutôt que par leur classe.
+
+## Phase 6 : empaquetage Windows
+
+Trois artefacts, construits séparément puis assemblés, tous par la CI sur
+`windows-latest` — aucun n'est construit à la main sur un poste :
+
+1. `packaging/build-engine.ps1` construit `imapsync.exe` avec PAR::Packer, à partir du
+   commit amont épinglé et vérifié par empreinte SHA-256, après installation des modules
+   CPAN listés dans le script. Le binaire produit doit répondre exactement `2.314` à
+   `--version`, sinon la construction échoue. La licence NLPL autorise explicitement cette
+   redistribution ; l'auteur vend un binaire, il n'en interdit pas la construction.
+2. `packaging/mailbox-synchroniseur.spec` empaquette l'application avec PyInstaller **en
+   mode dossier**. Ce n'est pas un choix de confort : Qt est distribué sous LGPLv3, qui
+   exige que l'utilisateur puisse substituer sa propre version de la bibliothèque. Des DLL
+   distinctes et remplaçables satisfont cette exigence ; un exécutable unique la rendrait
+   discutable. La construction installe `PySide6-Essentials`, l'application n'utilisant que
+   QtCore, QtGui et QtWidgets.
+3. `packaging/installer.iss` assemble les deux avec Inno Setup, installe LICENSE et
+   THIRD_PARTY.md à côté de l'application, et n'efface pas l'historique local à la
+   désinstallation — il appartient à l'utilisateur.
+
+`bundle.py` fait le lien entre ce format et l'application : `application_directory()` rend
+le dossier de l'exécutable une fois gelé, le dossier du projet en exécution depuis les
+sources ; `bundled_engine()` cherche `engine/imapsync[.exe]` à côté, vérifie que c'est bien
+un fichier exécutable, et rend `None` sinon. L'interface présélectionne ce moteur sans
+l'imposer : le champ reste modifiable, et toutes les garanties existantes (simulation
+obligatoire, profil n'autorisant pas un exécutable) s'appliquent identiquement.
+
+`--version` imprime une ligne unique et stable, que le workflow compare à la version du
+paquet : c'est le seul moyen de vérifier qu'un binaire graphique démarre sur un runner sans
+écran.

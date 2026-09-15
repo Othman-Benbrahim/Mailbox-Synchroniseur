@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.4.0 alpha 2
+# Mailbox Synchroniseur — 0.6.0 alpha 1
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -128,6 +128,19 @@ moteur dans le périmètre choisi ; ce n'est pas un contrôle SHA-256 de chaque 
 réalisé par l'application. Ce contrôle SHA-256 appartient à la suite de tests.
 Après un arrêt ou une erreur, la présence complète n'est jamais annoncée.
 
+## Windows : installateur
+
+Un installateur autonome est construit par la chaîne d'intégration
+(`.github/workflows/package.yml`) : il embarque Python, Qt et **un moteur imapsync
+construit depuis la source amont épinglée**. Aucune installation de Python ni de Perl
+n'est nécessaire sur la machine. Le moteur fourni est présélectionné au démarrage et
+reste remplaçable par un autre exécutable de ton choix.
+
+L'installateur est produit et a été installé avec succès sur une machine Windows de
+développement. Il n'a pas encore été essayé sur une machine dépourvue de Python et de Perl :
+tant que STATUS.md ne consigne pas cet essai, l'autonomie complète du paquet reste à
+confirmer. Les binaires ne sont ni signés ni notariés ; Windows affichera un avertissement.
+
 ## Windows : lancement depuis les sources
 
 1. Extraire entièrement cette archive dans un dossier, par exemple
@@ -136,7 +149,7 @@ Après un arrêt ou une erreur, la présence complète n'est jamais annoncée.
 3. Double-cliquer sur **Lancer-Windows.bat**. Au premier lancement, un environnement
    `.venv` est créé et PySide6 est téléchargé (connexion Internet nécessaire).
 4. Dans l'application, sélectionner un **imapsync.exe de confiance** déjà disponible
-   sur l'ordinateur. Il n'est pas fourni dans cette alpha.
+   sur l'ordinateur. Le lancement depuis les sources n'en fournit pas ; l'installateur, si.
 5. Renseigner les deux comptes, tester les accès et lancer une simulation.
 6. Examiner le journal et cliquer sur « Copier les messages ».
 
@@ -170,8 +183,10 @@ Documentation et distributions de l'auteur : https://imapsync.lamiral.info/
 
 Le code source amont est libre ; certaines distributions et le support de l'auteur
 sont payants. Cette archive ne contient aucun exécutable imapsync ni ses dépendances.
-La construction et l'intégration d'un moteur redistribuable dans un installateur
-sans Python ni Perl préinstallés figurent dans la phase 6.
+La licence NLPL d'imapsync se résume à une phrase — « No limits to do anything with
+this work and this license » — et autorise donc explicitement la redistribution d'un
+binaire construit soi-même. C'est ce que fait `packaging/build-engine.ps1`, depuis le
+commit amont épinglé et vérifié par empreinte. Voir THIRD_PARTY.md.
 
 Le moteur doit prendre en charge les mots de passe `IMAPSYNC_PASSWORD1/2` dans son
 environnement et les options documentées dans `docs/ARCHITECTURE.md`. Le contrat
@@ -200,6 +215,9 @@ taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.m
 - Pas de miroir, déplacement, synchronisation bidirectionnelle, contacts ou calendriers.
 - Pas de sauvegarde de mot de passe ni de jeton, pas de coffre système, pas de
   renouvellement automatique : une session, une connexion.
+- L'installateur n'est ni signé ni notarié : Windows affichera un avertissement
+  SmartScreen. Aucune signature n'est annoncée tant qu'elle n'est pas réalisée.
+- Pas d'installateur Linux ni macOS : seule la chaîne Windows est écrite.
 - **La connexion OAuth n'a été vérifiée contre aucun serveur IMAP réel** : voir STATUS.md.
 - Pas de planification ni d'installateur autonome.
 - Pas de limite de débit configurable ; abandonnée du périmètre de la phase 3.
