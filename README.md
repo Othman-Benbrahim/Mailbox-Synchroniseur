@@ -136,10 +136,9 @@ construit depuis la source amont épinglée**. Aucune installation de Python ni 
 n'est nécessaire sur la machine. Le moteur fourni est présélectionné au démarrage et
 reste remplaçable par un autre exécutable de ton choix.
 
-L'installateur est produit et a été installé avec succès sur une machine Windows de
-développement. Il n'a pas encore été essayé sur une machine dépourvue de Python et de Perl :
-tant que STATUS.md ne consigne pas cet essai, l'autonomie complète du paquet reste à
-confirmer. Les binaires ne sont ni signés ni notariés ; Windows affichera un avertissement.
+L'installateur a été installé et utilisé sur une machine Windows dépourvue de Python et de
+Perl : le paquet est autonome. Les binaires ne sont ni signés ni notariés, donc Windows
+affiche un avertissement SmartScreen à l'installation.
 
 ## Windows : lancement depuis les sources
 
