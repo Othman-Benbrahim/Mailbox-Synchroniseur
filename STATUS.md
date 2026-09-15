@@ -1,4 +1,4 @@
-# État du projet — 0.4.0 alpha 2
+# État du projet — 0.6.0 alpha 1
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
@@ -25,7 +25,7 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 3 — Fonctions avancées | Terminée : lots 3a, 3b, 3c et 3d validés et fusionnés | Un run vert par lot, détaillés ci-dessous |
 | 4 — OAuth et fournisseurs | Lot 4a fusionné, non validé contre un serveur réel ; **suite suspendue** | Run de la PR #12 : 198 tests de socle Linux et Windows, 23 essais IMAP ; aucun essai IMAP OAuth |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
-| 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
+| 6 — Distribution autonome | Chaîne construite et installateur essayé ; validation sur machine vierge à faire | Run de la PR #16 sur `47dc8686` ; installation et lancement vérifiés sur une machine Windows de développement |
 
 ## Correctif 0.4.0 alpha 2 — lisibilité sous thème sombre
 
@@ -324,6 +324,58 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
   sans en-têtes) fausse l'estimation d'autant ; le volume transféré affiché après copie
   reste, lui, mesuré sur les octets réels.
 
+## Phase 6 — ce qui est livré
+
+- `packaging/build-engine.ps1` : construction d'`imapsync.exe` avec PAR::Packer depuis le
+  commit amont épinglé, après installation des modules CPAN. Le binaire doit répondre
+  exactement `2.314` à `--version`, sinon la construction échoue.
+- `packaging/mailbox-synchroniseur.spec` : empaquetage PyInstaller **en mode dossier**,
+  exigence de conformité LGPLv3 pour Qt, pas un choix de confort.
+- `packaging/installer.iss` : installateur Inno Setup, LICENSE et THIRD_PARTY.md installés
+  à côté de l'application, historique local non supprimé à la désinstallation.
+- `.github/workflows/package.yml` : les trois constructions sur `windows-latest`, avec
+  vérification que l'exécutable démarre (`--version`), que le moteur produit annonce la
+  bonne version, et que l'application détecte le moteur embarqué.
+- `bundle.py` : localisation du moteur livré à côté de l'exécutable. Il est présélectionné
+  et reste remplaçable ; la simulation préalable et les autres garanties sont inchangées.
+- THIRD_PARTY.md énumère les composants réellement distribués et leurs obligations.
+
+### Premier run — ce qui est désormais éprouvé
+
+Le premier run de la chaîne (PR #16, commit `a053c21`) a montré l'inverse de ce qui était
+redouté. **La construction du moteur a réussi en deux minutes** : modules CPAN installés,
+PAR::Packer a produit un `imapsync.exe` répondant `2.314`. L'empaquetage PyInstaller a
+réussi, l'exécutable produit démarre et annonce sa version, le binaire du moteur est vérifié,
+et l'application détecte le moteur placé à côté d'elle.
+
+Seule la compilation de l'installateur a échoué, sur une erreur de syntaxe PowerShell :
+`"$env:ProgramFiles(x86)\..."` est lu comme `$env:ProgramFiles` suivi du texte littéral
+`(x86)`. Les accolades sont obligatoires autour d'un nom de variable contenant des
+parenthèses. Corrigé, avec recherche d'`ISCC.exe` dans les deux emplacements possibles et
+échec explicite s'il reste introuvable.
+
+### Deuxième run — installateur produit et essayé
+
+Après correction, le run de la PR #16 sur le commit `47dc8686` a produit les trois artefacts :
+le moteur `imapsync.exe`, l'application empaquetée et l'installateur Windows. L'installateur
+a été exécuté par l'auteur sur sa machine Windows : installation, lancement de l'application
+installée et fonctionnement constatés. 11 tests (`tests/test_phase6.py`) couvrent le contrat
+de détection du moteur, 223 tests de socle au total.
+
+### Ce qui reste à éprouver
+
+**La machine d'essai dispose déjà de Python et de Perl.** Un paquet peut y emprunter
+silencieusement une bibliothèque ou un module présent sur le système ; l'essai ne prouve donc
+pas encore l'autonomie revendiquée. La vérification qui compte est une installation sur une
+machine Windows dépourvue de Python et de Perl — machine virtuelle propre ou autre poste —
+suivie d'une migration de référence.
+
+Restent également non faits : la désinstallation propre, les paquets Linux et macOS, et
+toute signature ou notarisation des binaires. Aucune n'est annoncée.
+
+La phase 6 ne sera consignée comme terminée qu'après une installation réussie sur une
+machine Windows sans Python ni Perl, avec une migration de référence.
+
 ## Pourquoi la phase 4 est suspendue
 
 Le lot 4a repose sur une hypothèse qui s'est révélée fausse à l'épreuve : que l'utilisateur
@@ -351,10 +403,10 @@ changement de politique de Microsoft.
 
 ## Prochaine action
 
-Phase 6 (distribution) plutôt que la suite des phases 4 et 5 ; changement d'ordre consigné
-dans ROADMAP.md avec son motif. Un installateur Windows autonome embarquant imapsync est ce
-qui manque réellement aux utilisateurs visés, alors que l'automatisation de la phase 5
-suppose un stockage de secrets qui relevait de la phase 4.
+Installer le paquet sur une machine Windows dépourvue de Python et de Perl, y faire une
+migration de référence, et consigner ici le résultat. C'est la dernière condition de la
+phase 6. Ensuite seulement : publier une version, en indiquant que les binaires ne sont pas
+signés, et décider si les paquets Linux et macOS valent le coût.
 
 Rappel du plan initial (lot 3d : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,
