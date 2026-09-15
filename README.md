@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.3.0 alpha 2
+# Mailbox Synchroniseur — 0.3.0 alpha 3
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -17,6 +17,7 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 - Lire un journal de session avec masquage des mots de passe connus.
 - Filtrer par dates et par taille de message ; lire une estimation du volume après simulation.
 - Découvrir les dossiers des deux comptes et recevoir une proposition de correspondance, à vérifier.
+- Relire l'historique local des opérations et exporter un rapport, sans mot de passe.
 
 La copie est déverrouillée après une simulation réussie. Toute modification des
 comptes, ports, mots de passe, dossiers ou chemin du moteur invalide cette simulation.
@@ -43,6 +44,21 @@ leur raison. Le tableau reste modifiable et la simulation reste obligatoire : ri
 copié sur la seule foi de la proposition.
 
 ![Proposition de correspondance](docs/correspondance-phase3b.png)
+
+## Historique et export de rapports
+
+Chaque opération terminée est enregistrée dans un fichier JSON du dossier de données
+utilisateur, sous `historique/`. Le chemin exact est affiché sous la liste ; la variable
+d'environnement `MAILBOX_HISTORY_DIR` permet de le changer. Une entrée contient ce que le
+bilan affiche : serveurs, identifiants, périmètre, filtres, compteurs, code de sortie et
+message. **Elle ne contient aucun mot de passe et ne reprend pas le journal de session.**
+Les 200 entrées les plus récentes sont conservées ; les plus anciennes sont effacées.
+
+Depuis l'onglet « Historique », on relit le rapport d'une opération, on l'exporte en
+fichier texte, on reprend le périmètre et les filtres d'une exécution passée (les comptes
+et les mots de passe ne sont jamais rétablis), ou on supprime une entrée ou la totalité.
+
+![Historique](docs/historique-phase3c.png)
 
 ## Filtres et estimation du volume
 
@@ -140,7 +156,9 @@ taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.m
   volume affiché après copie est mesuré sur les octets réels.
 - Les messages exclus par un filtre de taille sont comptés par imapsync comme absents à
   destination ; le bilan les identifie séparément et ne les cache pas.
-- Pas de miroir, de déplacement ni d'historique (lots 3c et 3d).
+- Pas de miroir ni de déplacement (lot 3d).
+- L'historique est local et en clair : il contient adresses, serveurs et noms de dossiers.
+  Le supprimer depuis l'onglet ou effacer les fichiers si ces informations sont sensibles.
 - La découverte utilise le magasin de certificats de Python, la copie celui de l'installation
   imapsync/Perl : un certificat accepté par l'un peut être refusé par l'autre.
 - Pas de resynchronisation des états des messages déjà présents dans cette alpha.
@@ -169,7 +187,9 @@ Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-
 a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
 réels sous Linux. Le [run de validation du lot 3a](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481)
 a réussi : 111 tests du socle sous Linux et Windows, 18 essais IMAP réels sous Linux.
-Le lot 3b ajoute 20 tests de socle (131) et 2 essais IMAP réels (20).
+Le [run de validation du lot 3b](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) a réussi :
+131 tests du socle sous Linux et Windows, 20 essais IMAP réels sous Linux. Le lot 3c
+ajoute 13 tests de socle (144) et 1 essai IMAP réel (21) ; son état est dans STATUS.md.
 [STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.

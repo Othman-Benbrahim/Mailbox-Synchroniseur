@@ -5,6 +5,14 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 
+@pytest.fixture(autouse=True)
+def history_directory(tmp_path, monkeypatch):
+    """No test ever writes into the real user history."""
+    directory = tmp_path / "historique"
+    monkeypatch.setenv("MAILBOX_HISTORY_DIR", str(directory))
+    return directory
+
+
 @pytest.fixture(scope="session")
 def app():
     return QApplication.instance() or QApplication([])

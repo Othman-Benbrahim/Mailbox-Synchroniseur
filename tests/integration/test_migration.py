@@ -472,3 +472,37 @@ def test_discovery_lists_folders_over_verified_tls_and_proposal_drives_a_real_co
     assert snapshot(destination, "Archives/Été") == snapshot(source, "Archives/Été")
     assert snapshot(destination) == snapshot(source)
     assert snapshot(destination, "Envoyés") == []
+
+
+def test_history_of_a_real_run_carries_no_secret_and_matches_the_engine(pair, app, until, tmp_path, monkeypatch):
+    """The history entry of an actual imapsync run reproduces its counters and
+    contains neither the password nor the session log."""
+    from mailbox_sync import history
+    monkeypatch.setenv("MAILBOX_HISTORY_DIR", str(tmp_path / "historique"))
+    directory = tmp_path / "historique"
+    source, destination, _ = pair
+    seed(source, count=2)
+    p = plan(pair, folders=(FolderMapping("INBOX", ""),))
+    runner = Runner()
+    results = []
+    runner.done.connect(lambda ok, text: results.append((ok, text)))
+    started = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+    runner.start(p, Mode.COPY, (PASSWORD, PASSWORD))
+    try:
+        until(lambda: bool(results), seconds=45)
+        assert results[0][0], results
+    finally:
+        if runner.active:
+            runner.stop()
+            until(lambda: not runner.active, seconds=5)
+    path = history.save(history.build(p, runner.report, *results[0], started), directory)
+    text = path.read_text(encoding="utf-8")
+    assert PASSWORD not in text and "IMAPSYNC_PASSWORD" not in text
+    entry = history.load(directory)[0]
+    assert entry.counters["transferred"] == runner.report.transferred == 2
+    assert entry.counters["transferred_bytes"] == runner.report.transferred_bytes
+    assert entry.counters["destination_confirmed"] is True
+    assert entry.folders == [{"source": "INBOX", "destination": ""}]
+    report = history.report_text(entry)
+    assert PASSWORD not in report and "Copiés              : 2" in report
+    assert snapshot(destination) == snapshot(source)

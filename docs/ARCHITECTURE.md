@@ -11,6 +11,8 @@
 - `discovery.py` : une commande IMAP `LIST` par compte, en lecture seule, TLS vérifié (lot 3b).
 - `mapping.py` : proposition pure de correspondance des dossiers, avec raisons (lot 3b).
 - `discovery_worker.py` : exécution de la découverte hors du fil d'interface (lot 3b).
+- `history.py` : historique local JSON sans secrets et texte de rapport exportable (lot 3c).
+- `history_view.py` : liste, détail, export, reprise de périmètre et suppression (lot 3c).
 - `report.py` : compteurs observés et conditions de confirmation de destination.
 - `ui.py` : source/destination, simulation préalable, exécution et bilan.
 
@@ -129,3 +131,25 @@ Dans l'interface, la proposition remplit le tableau existant : elle est modifiab
 invalide la simulation comme toute modification, et la copie reste conditionnée à une
 simulation réussie. Pendant la découverte, la configuration et les actions sont bloquées et
 la fermeture est différée ; les mots de passe sont libérés par le worker en fin d'exécution.
+
+## Phase 3, lot 3c : historique local et export de rapports
+
+Format retenu : un fichier JSON par exécution, dans `<données utilisateur>/historique/`
+(`QStandardPaths.AppDataLocation`, remplaçable par `MAILBOX_HISTORY_DIR`). Choix discuté :
+JSON plutôt que SQLite, car le volume attendu est faible, aucune requête n'est nécessaire,
+le contenu reste lisible et inspectable par l'utilisateur, et chaque entrée se supprime
+fichier par fichier. Écriture atomique (`mkstemp` + `os.replace` + `fsync`), nom
+`AAAAMMJJ-HHMMSS-NNN-<mode>.json` pour éviter toute collision à la même seconde, `version`
+explicite refusée si inconnue, taille plafonnée à la lecture, fichier illisible ignoré sans
+faire échouer la liste, purge au-delà de 200 entrées.
+
+Ce qui est enregistré est exactement ce que le bilan affiche : horodatages, mode, résultat
+et message, comptes (hôte, identifiant, port, sécurité — comme dans le profil), périmètre,
+filtres, compteurs et code de sortie. **Ni mot de passe, ni journal de session** : le journal
+peut contenir des sorties du moteur que l'utilisateur n'a pas choisi de conserver. Le rapport
+exporté est le même contenu en texte, et le rappelle explicitement en dernière ligne.
+
+L'échec d'écriture de l'historique est signalé dans le journal et n'interrompt jamais
+l'opération : l'historique est une commodité, pas un élément du chemin critique. La reprise
+d'un périmètre passé recharge dossiers et filtres seulement ; elle ne rétablit ni compte, ni
+secret, et invalide la simulation comme toute modification.
