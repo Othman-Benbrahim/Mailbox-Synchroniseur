@@ -165,7 +165,9 @@ reprise après coupure TCP et absence de recopies sur les fixtures.
 Les migrations Windows, Gmail et Microsoft 365 ne sont pas encore validées.
 La phase 2 est validée sur ces comptes de test, y compris le refus d'ajout par
 quota strict et la reprise après augmentation du quota : voir
-[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). Le lot 3a de la phase 3 (filtres par dates et
+[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). **La phase 3 est terminée** : filtres et
+estimation du volume, découverte et correspondance des dossiers, historique et export,
+miroir. STATUS.md porte le tableau des preuves de ses quatre lots. Le lot 3a de la phase 3 (filtres par dates et
 taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.md.
 
 - La proposition de correspondance est une aide, pas une décision : elle se vérifie ligne par ligne.

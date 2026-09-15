@@ -128,8 +128,8 @@ aucun test ne touche l'historique réel de l'utilisateur.
 
 Les deux essais de miroir utilisent la fixture GreenMail `pair`. Ils ont été exécutés
 localement avec pymap substitué à GreenMail (indisponible dans ce runtime), rapport
-`docs/validation-3d-pymap.xml` ; la fixture GreenMail est validée par le run GitHub de la
-PR du lot 3d. Les comparaisons de messages se font à l'intérieur d'une même boîte : les
+`docs/validation-3d-pymap.xml` ; la fixture GreenMail a été validée par le run GitHub de la
+PR #10 (23 essais). Les comparaisons de messages se font à l'intérieur d'une même boîte : les
 frontières MIME étant aléatoires, deux dépôts du même message n'ont pas le même SHA-256.
 
 ## Résultat de fermeture — 15 septembre 2026
