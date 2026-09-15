@@ -131,3 +131,13 @@ tailles de dossiers) ne sont pas jugées assez fiables pour un affichage.
 Écart consigné : la simulation ne peut pas appliquer le filtre de taille sans
 télécharger la source (`--nodry1`). L'estimation est donc un maximum quand ce filtre
 est actif, et le bilan l'indique. Choix discuté et accepté pour ce lot.
+
+## Suivi de la livraison v0.3 alpha 2 — 15 septembre 2026 (lot 3b)
+
+Lot 3b implémenté : découverte des dossiers et proposition de correspondance, validée par
+l'utilisateur dans le tableau existant, sans lever l'obligation de simulation.
+
+Écart consigné : l'application émet désormais elle-même une commande IMAP (`LIST`, lecture
+seule) pour la découverte. AGENTS.md interdit un moteur IMAP maison à la place d'imapsync ;
+un `LIST` sans transfert n'en est pas un, et l'alternative par analyse de la sortie
+d'imapsync a été écartée. Décision prise après discussion. Voir docs/ARCHITECTURE.md.

@@ -1,11 +1,14 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox,
-                              QTableWidget, QTableWidgetItem, QHeaderView, QPushButton)
+                              QTableWidget, QTableWidgetItem, QHeaderView, QPushButton,
+                              QPlainTextEdit)
+from .mapping import describe
 from .models import FolderMapping
 
 
 class FolderSelector(QWidget):
     changed = Signal()
+    discover_requested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -24,14 +27,25 @@ class FolderSelector(QWidget):
         row = QHBoxLayout()
         self.add_button = QPushButton("Ajouter un dossier")
         self.remove_button = QPushButton("Retirer la ligne")
+        self.discover_button = QPushButton("Découvrir et proposer…")
+        self.discover_button.setToolTip("Liste les dossiers des deux comptes (lecture seule) et remplit "
+                                        "le tableau avec une proposition à vérifier.")
         row.addWidget(self.add_button)
         row.addWidget(self.remove_button)
+        row.addWidget(self.discover_button)
         row.addStretch()
         layout.addLayout(row)
+        self.explanations = QPlainTextEdit()
+        self.explanations.setReadOnly(True)
+        self.explanations.setMaximumHeight(140)
+        self.explanations.setPlaceholderText("La proposition de correspondance et ses raisons apparaîtront ici. "
+                                             "Le tableau reste modifiable ; une simulation reste obligatoire.")
+        layout.addWidget(self.explanations)
         self.enabled.toggled.connect(self._toggle)
         self.table.cellChanged.connect(self.changed)
         self.add_button.clicked.connect(self.add)
         self.remove_button.clicked.connect(self.remove)
+        self.discover_button.clicked.connect(self.discover_requested)
         self._toggle(False)
 
     def _toggle(self, enabled):
@@ -73,3 +87,13 @@ class FolderSelector(QWidget):
         folders = self.value()
         if folders is not None:
             self.load(tuple(FolderMapping(f.destination or f.source, f.source) for f in folders))
+        self.explanations.clear()
+
+    def apply_proposal(self, proposals):
+        """Fill the table with the proposal; excluded folders are listed, not added."""
+        mappings = tuple(p.mapping for p in proposals if p.mapping is not None)
+        self.explanations.setPlainText(describe(proposals))
+        if mappings:
+            self.load(mappings)
+        else:
+            self.load(None)

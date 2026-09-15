@@ -12,6 +12,7 @@ from .profiles import load_profile, save_profile
 from .runner import Runner
 from .folder_selector import FolderSelector
 from .filter_selector import FilterSelector
+from .discovery_worker import DiscoveryWorker
 
 STYLE = """
 QWidget { font-family: 'Segoe UI', 'DejaVu Sans'; font-size: 13px; color: #192d42; }
@@ -95,6 +96,7 @@ class Window(QMainWindow):
         self.current_plan = None
         self.current_mode = None
         self.close_after_run = False
+        self.discovery = None
         self.runner = Runner(self)
         self.runner.line.connect(self._line)
         self.runner.done.connect(self._done)
@@ -203,7 +205,56 @@ class Window(QMainWindow):
         self.destination.changed.connect(self._invalidate)
         self.engine.textChanged.connect(self._invalidate)
         self.folders.changed.connect(self._invalidate)
+        self.folders.discover_requested.connect(self._discover)
         self.filters.changed.connect(self._invalidate)
+
+    def _discover(self):
+        if self.runner.active or self.discovery is not None:
+            return
+        try:
+            source, destination = self.source.account(), self.destination.account()
+            source.validate()
+            destination.validate()
+        except ValueError as exc:
+            self._problem(str(exc))
+            return
+        passwords = (self.source.password.text(), self.destination.password.text())
+        if not all(passwords):
+            self._problem("Renseigne les deux mots de passe avant de découvrir les dossiers.")
+            return
+        self.discovery = DiscoveryWorker(source, destination, passwords, self)
+        self.discovery.proposed.connect(self._discovered)
+        self.discovery.failed.connect(self._discovery_failed)
+        self.config.setEnabled(False)
+        for button in (self.login, self.preview, self.copy):
+            button.setEnabled(False)
+        self.progress.setRange(0, 0)
+        self.status.setText("Découverte des dossiers en cours… aucun message n'est lu ni copié.")
+        self.discovery.start()
+
+    def _discovery_done(self):
+        worker, self.discovery = self.discovery, None
+        if worker is not None:
+            worker.wait()
+            worker.deleteLater()
+        self.config.setEnabled(True)
+        self.login.setEnabled(True)
+        self.preview.setEnabled(True)
+        self.progress.setRange(0, 1)
+        self.progress.setValue(0)
+
+    def _discovered(self, proposals):
+        self._discovery_done()
+        self.folders.apply_proposal(proposals)
+        kept = sum(1 for p in proposals if p.mapping is not None)
+        excluded = len(proposals) - kept
+        self._invalidate()
+        self.status.setText(f"Proposition : {kept} dossier(s) à copier, {excluded} exclu(s). "
+                            "Vérifie le tableau et les raisons, puis lance une simulation.")
+
+    def _discovery_failed(self, message):
+        self._discovery_done()
+        self._problem(message)
 
     def _plan(self):
         return Plan(self.source.account(), self.destination.account(), self.engine.text().strip(),
@@ -323,6 +374,10 @@ class Window(QMainWindow):
         QMessageBox.warning(self, "Configuration à vérifier", message)
 
     def closeEvent(self, event):
+        if self.discovery is not None:
+            event.ignore()
+            self.status.setText("Attends la fin de la découverte des dossiers avant de fermer.")
+            return
         if self.runner.active:
             event.ignore()
             if QMessageBox.question(self, "Opération en cours", "Arrêter l'opération puis fermer l'application ?",

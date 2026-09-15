@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.3.0 alpha 1
+# Mailbox Synchroniseur — 0.3.0 alpha 2
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -16,6 +16,7 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 - Arrêter un processus ; relancer une simulation avant reprise.
 - Lire un journal de session avec masquage des mots de passe connus.
 - Filtrer par dates et par taille de message ; lire une estimation du volume après simulation.
+- Découvrir les dossiers des deux comptes et recevoir une proposition de correspondance, à vérifier.
 
 La copie est déverrouillée après une simulation réussie. Toute modification des
 comptes, ports, mots de passe, dossiers ou chemin du moteur invalide cette simulation.
@@ -31,6 +32,17 @@ convertis en UTF-7 modifié IMAP. Les collisions dans la sélection sont refusé
 Refaire une simulation après toute modification et consulter le journal avant copie.
 
 ![Sélection des dossiers](docs/dossiers-phase2.png)
+
+Le bouton « Découvrir et proposer… » liste les dossiers des deux comptes (une seule
+commande IMAP `LIST`, en lecture seule, TLS vérifié comme pour le moteur) et remplit le
+tableau avec une proposition : nom identique, rôle reconnu (envoyés, brouillons,
+corbeille, indésirables, archives — par attribut SPECIAL-USE du serveur ou par nom usuel
+français/anglais), casse, séparateur de hiérarchie adapté, ou dossier à créer. Les
+dossiers non sélectionnables et « tous les messages » (Gmail) sont exclus et listés avec
+leur raison. Le tableau reste modifiable et la simulation reste obligatoire : rien n'est
+copié sur la seule foi de la proposition.
+
+![Proposition de correspondance](docs/correspondance-phase3b.png)
 
 ## Filtres et estimation du volume
 
@@ -116,8 +128,8 @@ quota strict et la reprise après augmentation du quota : voir
 [QUOTA-STRICT.md](docs/QUOTA-STRICT.md). Le lot 3a de la phase 3 (filtres par dates et
 taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.md.
 
-- Sélection manuelle par noms exacts ; pas de découverte automatique des dossiers.
-- Ajouter chaque sous-dossier séparément. La destination vide conserve le nom source.
+- La proposition de correspondance est une aide, pas une décision : elle se vérifie ligne par ligne.
+- La destination vide conserve le nom source. Les sous-dossiers sont proposés un par un.
 - Les profils v1 restent lisibles ; les nouveaux profils v2 mémorisent les dossiers.
 - Un ancien lecteur v0.1 ne peut pas ouvrir les profils v2.
 - Pas de miroir, déplacement, synchronisation bidirectionnelle, contacts ou calendriers.
@@ -128,7 +140,9 @@ taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.m
   volume affiché après copie est mesuré sur les octets réels.
 - Les messages exclus par un filtre de taille sont comptés par imapsync comme absents à
   destination ; le bilan les identifie séparément et ne les cache pas.
-- Pas de correspondance automatique des dossiers, de miroir, de déplacement ni d'historique.
+- Pas de miroir, de déplacement ni d'historique (lots 3c et 3d).
+- La découverte utilise le magasin de certificats de Python, la copie celui de l'installation
+  imapsync/Perl : un certificat accepté par l'un peut être refusé par l'autre.
 - Pas de resynchronisation des états des messages déjà présents dans cette alpha.
 - Les erreurs du moteur signifient qu'une copie peut être partielle ; arrêter
   n'annule pas les messages déjà copiés.
@@ -155,6 +169,7 @@ Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-
 a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
 réels sous Linux. Le [run de validation du lot 3a](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481)
 a réussi : 111 tests du socle sous Linux et Windows, 18 essais IMAP réels sous Linux.
-[STATUS.md](STATUS.md) identifie le commit testé et les limites de cette validation.
+Le lot 3b ajoute 20 tests de socle (131) et 2 essais IMAP réels (20).
+[STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.

@@ -69,6 +69,7 @@ Les versions amont utilisées sont identifiées dans `scripts/prepare_integratio
 | Coupure réseau | Fermeture réelle d'un relais TCP opaque après le premier transfert, état partiel vérifié, nouvelle simulation et reprise sans recopies |
 | Filtre par dates (lot 3a, TLS direct et STARTTLS) | Seul le message dont la date interne est dans l'intervalle est copié ; nombre à copier et volume estimé égaux au RFC822.SIZE annoncé ; volume transféré égal aux octets réels du message (égal à l'estimation sur pymap, qui annonce des tailles exactes ; GreenMail les annonce sans en-têtes) ; élargissement sans recopie |
 | Filtre par taille (lot 3a, TLS direct et STARTTLS) | Message au-dessus de `--maxsize` non copié, compté par imapsync comme ignoré et absent, identifié comme exclu par le filtre ; copie confirmée ; simulation annoncée comme maximum ; copie sans filtre ensuite sans recopie |
+| Découverte et proposition (lot 3b, TLS direct et STARTTLS) | `LIST` réel sur les deux comptes avec certificat vérifié ; mauvais mot de passe et mauvais nom d'hôte refusés ; rien d'écrit par la découverte ; proposition `Envoyés → Sent Items`, dossier Unicode imbriqué conservé ; copie réelle pilotée par la proposition, contenu vérifié par SHA-256 |
 
 Dans le test de coupure uniquement, le débit est limité à un message par seconde
 pour couper avant la fin. Le processus est ensuite arrêté pour borner ses tentatives
@@ -100,6 +101,14 @@ essais distinguent depuis la taille annoncée et les octets réellement transfé
 lectures de la source imapsync (comptage des messages filtrés par taille parmi
 les absents, non-application du filtre de taille en `--dry`) confirmées par cette
 exécution locale.
+
+## Lot 3b — état de validation
+
+L'essai `test_discovery_lists_folders_over_verified_tls_and_proposal_drives_a_real_copy`
+est paramétré GreenMail/pymap (20 essais IMAP au total). Variante pymap réussie localement
+contre imapsync 2.314 réel le 15 septembre 2026 (`docs/validation-3b-pymap.xml`) ;
+variante GreenMail et socle Windows à valider par le run de la PR du lot 3b. STATUS.md
+est la référence.
 
 ## Résultat de fermeture — 15 septembre 2026
 

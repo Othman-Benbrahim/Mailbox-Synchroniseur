@@ -8,6 +8,9 @@
 - `folders.py` : encodage des noms en UTF-7 modifié IMAP.
 - `folder_selector.py` : saisie et inversion des correspondances explicites.
 - `filter_selector.py` : saisie des filtres par dates et taille (phase 3, lot 3a).
+- `discovery.py` : une commande IMAP `LIST` par compte, en lecture seule, TLS vérifié (lot 3b).
+- `mapping.py` : proposition pure de correspondance des dossiers, avec raisons (lot 3b).
+- `discovery_worker.py` : exécution de la découverte hors du fil d'interface (lot 3b).
 - `report.py` : compteurs observés et conditions de confirmation de destination.
 - `ui.py` : source/destination, simulation préalable, exécution et bilan.
 
@@ -94,3 +97,35 @@ sur erreurs, absents non expliqués ou messages non identifiés.
 
 Ces lectures proviennent de la source imapsync épinglée ; les essais IMAP les
 vérifient contre le moteur réel. Un libellé changé donne « non communiqué ».
+
+## Phase 3, lot 3b : découverte des dossiers et proposition de correspondance
+
+Décision consignée : l'application parle IMAP directement, pour un seul verbe (`LIST`),
+en lecture seule, afin de connaître les dossiers des deux comptes. Ce n'est pas un moteur
+de transfert : aucune sélection de boîte, aucun FETCH, aucun APPEND, et la copie reste
+entièrement déléguée à imapsync. L'alternative (`imapsync --justfolders --dry` et analyse de
+sa sortie) a été écartée : plus lente, sortie non structurée. `imaplib` est la bibliothèque
+standard ; pas de dépendance ajoutée.
+
+`discovery.list_folders` exige TLS avec vérification de la chaîne et du nom d'hôte
+(`ssl.create_default_context`, `CERT_REQUIRED`, `check_hostname`), en TLS direct ou STARTTLS
+sans repli en clair. Le magasin de certificats est celui de Python, distinct de celui de
+l'installation imapsync/Perl ; la documentation utilisateur le signale. Les messages
+d'erreur ne contiennent jamais le mot de passe. Les noms sont décodés de l'UTF-7 modifié
+(`folders.imap_utf7_decode`, tolérant : une section invalide est conservée telle quelle).
+Le lecteur de réponses `LIST` accepte les noms cités, atomes et littéraux, le délimiteur
+`NIL`, et lit les attributs SPECIAL-USE (RFC 6154) et `\Noselect`.
+
+`mapping.propose` est une fonction pure : pour chaque dossier source sélectionnable, dans
+l'ordre parents puis enfants, elle cherche dans l'ordre un nom identique, un rôle commun
+(attribut du serveur, sinon alias usuels français/anglais), un nom identique à la casse
+près, un préfixe déjà renommé, puis propose le nom traduit dans le séparateur de la
+destination. Les dossiers `\Noselect` et `\All` sont exclus avec leur raison ; deux sources
+visant la même destination donnent une exclusion explicite, jamais une collision silencieuse,
+de sorte que toute proposition satisfait `Plan.validate`. Chaque ligne porte un motif
+affiché à l'utilisateur.
+
+Dans l'interface, la proposition remplit le tableau existant : elle est modifiable, elle
+invalide la simulation comme toute modification, et la copie reste conditionnée à une
+simulation réussie. Pendant la découverte, la configuration et les actions sont bloquées et
+la fermeture est différée ; les mots de passe sont libérés par le worker en fin d'exécution.

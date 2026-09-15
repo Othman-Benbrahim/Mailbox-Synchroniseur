@@ -1,9 +1,10 @@
-# État du projet — 0.3.0 alpha 1
+# État du projet — 0.3.0 alpha 2
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
-validation sur comptes de test isolés.** **La phase 3 est commencée : le lot 3a
-(filtres par dates et taille, estimation du volume) est validé et fusionné.** Les
-lots 3b, 3c et 3d restent à faire.
+validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
+fusionné ; le lot 3b (découverte des dossiers et proposition de correspondance) est
+implémenté, testé sur le socle et vérifié localement contre imapsync réel en STARTTLS ;
+sa validation GreenMail et Windows attend le run GitHub de sa PR.** Lots 3c et 3d à faire.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -16,10 +17,35 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
-| 3 — Fonctions avancées | Lot 3a validé et fusionné ; lots 3b–3d à faire | Run 34916209481 : 111 tests de socle Linux et Windows, 18 essais IMAP réels |
+| 3 — Fonctions avancées | Lot 3a validé et fusionné ; lot 3b implémenté, validation partielle ; 3c–3d à faire | Lot 3a : run 34916209481. Lot 3b : 131 tests de socle et essai IMAP pymap réussis localement ; GreenMail et Windows en attente |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
+
+## Lot 3b — ce qui est livré
+
+- Bouton « Découvrir et proposer… » dans l'onglet des dossiers : un `LIST` IMAP par compte,
+  lecture seule, TLS vérifié (chaîne et nom d'hôte, TLS direct ou STARTTLS sans repli).
+- Proposition de correspondance avec raison par ligne : nom identique, rôle (attributs
+  SPECIAL-USE ou alias usuels français/anglais), casse, sous-dossier d'un parent renommé,
+  séparateur adapté, dossier à créer. Exclusions explicites : non sélectionnable, « tous
+  les messages », conflit de destination. Toute proposition satisfait `Plan.validate`.
+- Le tableau reste modifiable ; la proposition invalide la simulation ; la copie reste
+  conditionnée à une simulation réussie. Découverte hors du fil d'interface, contrôles
+  bloqués pendant son exécution, mots de passe libérés à la fin, jamais dans les messages.
+- Décodage UTF-7 modifié tolérant ; lecteur `LIST` pour noms cités, atomes, littéraux.
+- Retrait du dossier `ci-results/` commité par erreur dans la PR #5 ; ajouté au `.gitignore`.
+
+Preuves : 131 tests de socle réussis localement (20 nouveaux, `tests/test_phase3b.py`) ;
+essai IMAP `test_discovery_lists_folders_over_verified_tls_and_proposal_drives_a_real_copy`
+(variante pymap/STARTTLS) réussi localement contre imapsync 2.314 réel, rapport
+`docs/validation-3b-pymap.xml`. Variante GreenMail et socle Windows : à valider par le run
+GitHub de la PR du lot 3b. Un test ignoré ne vaut pas réussite.
+
+Limites du lot 3b : la découverte utilise le magasin de certificats de Python, la copie
+celui de Perl ; les rôles reconnus par nom couvrent le français et l'anglais usuels, pas
+toutes les langues ; les attributs SPECIAL-USE ne sont pas fournis par tous les serveurs
+(GreenMail et pymap n'en publient pas dans les essais).
 
 ## Lot 3a — ce qui est livré
 
@@ -156,7 +182,12 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-Lot 3b : correspondance automatique des dossiers proposée puis validée par
+Ouvrir la PR du lot 3b, exiger 131 + 131 + 20 sans ignoré, fusionner, consigner. Puis
+lot 3c : historique local et export de rapports sans secrets. Lot 3d ensuite : déplacement
+et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,
+testés sur comptes jetables avant validation.
+
+Rappel de l'ordre initial des lots (lot 3b : correspondance automatique des dossiers proposée puis validée par
    l'utilisateur. Lot 3c : historique local et export de rapports sans secrets.
    Lot 3d : déplacement et miroir, désactivés par défaut, avec aperçu et confirmation
    séparés des suppressions, testés sur comptes jetables avant validation.
