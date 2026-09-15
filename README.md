@@ -113,8 +113,8 @@ reprise après coupure TCP et absence de recopies sur les fixtures.
 Les migrations Windows, Gmail et Microsoft 365 ne sont pas encore validées.
 La phase 2 est validée sur ces comptes de test, y compris le refus d'ajout par
 quota strict et la reprise après augmentation du quota : voir
-[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). La phase 3 a commencé par les filtres
-et l'estimation du volume (lot 3a) ; son état de validation est dans STATUS.md.
+[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). Le lot 3a de la phase 3 (filtres par dates et
+taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.md.
 
 - Sélection manuelle par noms exacts ; pas de découverte automatique des dossiers.
 - Ajouter chaque sous-dossier séparément. La destination vide conserve le nom source.
@@ -153,7 +153,8 @@ sont vérifiés avec le moteur simulé. Les essais réels nécessitent les dépe
 de [docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
 Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074)
 a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
-réels sous Linux. Le lot 3a ajoute 55 tests de socle (111 au total) et 4 essais IMAP
-réels (18 au total). [STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
+réels sous Linux. Le [run de validation du lot 3a](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481)
+a réussi : 111 tests du socle sous Linux et Windows, 18 essais IMAP réels sous Linux.
+[STATUS.md](STATUS.md) identifie le commit testé et les limites de cette validation.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.

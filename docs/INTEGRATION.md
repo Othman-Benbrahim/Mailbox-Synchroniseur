@@ -93,8 +93,10 @@ Les deux essais de filtres sont paramétrés sur les deux familles de serveurs
 (GreenMail en TLS direct, pymap en STARTTLS), soit 18 essais IMAP au total.
 Les variantes pymap ont réussi localement contre le moteur réel le 15 septembre
 2026 (`docs/validation-3a-pymap.xml`, exécution hors de la fixture de session du
-dépôt faute d'accès à GreenMail). Les variantes GreenMail sont exécutées par la
-tâche `imap` de la PR #4 ; STATUS.md est la référence. Ces essais encodent des
+dépôt faute d'accès à GreenMail). Les variantes GreenMail ont été validées par le
+[run 34916209481](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481) sur le commit `10637f2c862acba1758a7ee351f24b9a42f16c27` : 18 essais réussis, aucun ignoré.
+Ce run a aussi révélé que GreenMail annonce un `RFC822.SIZE` sans en-têtes ; les
+essais distinguent depuis la taille annoncée et les octets réellement transférés. Ces essais encodent des
 lectures de la source imapsync (comptage des messages filtrés par taille parmi
 les absents, non-application du filtre de taille en `--dry`) confirmées par cette
 exécution locale.
