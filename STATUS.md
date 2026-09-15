@@ -401,6 +401,19 @@ Ce qui rouvrirait la phase 4 : soit une identité d'application embarquée dans 
 inscrite au nom du mainteneur — décision non prise, elle l'engage personnellement — soit un
 changement de politique de Microsoft.
 
+## Incident de dépôt — artefacts commités
+
+La fusion de la clôture de la phase 6 a introduit dans `main` un dossier `paquet/` de
+170 Mo : les artefacts téléchargés depuis GitHub Actions (`gh run download`) se trouvaient
+dans le clone et ont été pris par un `git add -A`. Retiré du dépôt, et `paquet/`,
+`artifacts/` et `*.exe` sont désormais ignorés.
+
+L'historique Git conserve ces objets : un clone reste plus lourd qu'avant. L'historique
+n'est **pas** réécrit, délibérément. Une réécriture changerait tous les identifiants de
+commits, or STATUS.md, ROADMAP.md et docs/INTEGRATION.md désignent des commits précis comme
+preuves de validation de chaque lot. Détruire cette traçabilité coûterait plus que le poids
+du dépôt. À reconsidérer seulement si le dépôt devient impraticable.
+
 ## Prochaine action
 
 Installer le paquet sur une machine Windows dépourvue de Python et de Perl, y faire une

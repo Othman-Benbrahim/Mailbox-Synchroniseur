@@ -256,8 +256,10 @@ qui a échoué, sur une erreur de syntaxe PowerShell de l'auteur, corrigée au r
 trois artefacts sont produits depuis le commit `47dc8686`, et l'installateur a été essayé
 avec succès sur une machine Windows de développement.
 
-Il reste la condition qui décide : une installation sur une machine dépourvue de Python et de
-Perl. Tant qu'elle n'est pas faite, STATUS.md ne consigne pas la phase 6 comme terminée.
+La condition qui décidait a été remplie : le paquet a été installé et utilisé sur une machine
+Windows dépourvue de Python et de Perl. **La phase 6 est terminée pour Windows.** Restent
+hors périmètre, et non annoncés : signature et notarisation, paquets Linux et macOS,
+procédure de mise à jour automatique.
 
 Restent hors périmètre de cette livraison : signature et notarisation des binaires (aucune
 n'est annoncée), paquets Linux et macOS, procédure de mise à jour automatique.
