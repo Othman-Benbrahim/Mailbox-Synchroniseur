@@ -12,9 +12,34 @@ Le code original de Mailbox Synchroniseur est sous licence MIT.
 - Python et bibliothèque standard : licence PSF, https://docs.python.org/3/license.html
 - pytest : dépendance de développement, MIT, https://github.com/pytest-dev/pytest
 
-Aucun binaire tiers n'est embarqué dans la livraison de sources v0.2. La phase de
-packaging devra fournir les notices, textes et obligations correspondant aux
-composants effectivement distribués.
+## Composants distribués dans l'installateur Windows
+
+La livraison de sources n'embarque aucun binaire tiers. L'installateur Windows
+construit par `.github/workflows/package.yml` en distribue, avec leurs obligations :
+
+- **imapsync** (Gilles Lamiral), licence NLPL, dont le texte intégral est :
+  « No limits to do anything with this work and this license. » La redistribution
+  d'un binaire construit soi-même est donc explicitement permise. Le binaire est
+  construit par `packaging/build-engine.ps1` à partir du commit amont épinglé
+  `93654c6025ff7814f983ab74dd300f9bed9282d9`, vérifié par empreinte SHA-256.
+- **Perl et les modules CPAN** nécessaires à imapsync, embarqués par PAR::Packer
+  dans le binaire du moteur. Perl est sous double licence Artistic 1.0 / GPL-1.0+ ;
+  les modules CPAN portent leurs licences respectives, majoritairement identiques.
+  La liste des modules installés figure dans `packaging/build-engine.ps1`.
+- **Python** et sa bibliothèque standard, embarqués par PyInstaller, licence PSF.
+- **PySide6 / Qt** sous LGPLv3. L'application est empaquetée en mode dossier
+  (« onedir »), jamais en fichier unique : les bibliothèques Qt restent des fichiers
+  distincts, visibles et remplaçables par l'utilisateur, ce qui satisfait l'exigence
+  de relink de la LGPLv3. Seuls QtCore, QtGui et QtWidgets sont utilisés, et la
+  construction installe `PySide6-Essentials`. Sources amont :
+  https://download.qt.io/official_releases/QtForPython/
+- **OpenSSL**, embarqué via les modules TLS de Perl, licence Apache 2.0.
+
+Le fichier LICENSE du projet et ce fichier sont installés à côté de l'application,
+et l'installateur les présente avant et après l'installation.
+
+Pour obtenir les sources d'un composant distribué ou une version modifiée de Qt,
+se reporter aux adresses ci-dessus ; le projet ne modifie aucun de ces composants.
 
 Dépendances des essais IMAP uniquement, téléchargées séparément :
 

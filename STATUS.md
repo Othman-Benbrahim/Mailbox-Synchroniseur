@@ -1,4 +1,4 @@
-# État du projet — 0.4.0 alpha 2
+# État du projet — 0.6.0 alpha 1
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
@@ -25,7 +25,7 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 3 — Fonctions avancées | Terminée : lots 3a, 3b, 3c et 3d validés et fusionnés | Un run vert par lot, détaillés ci-dessous |
 | 4 — OAuth et fournisseurs | Lot 4a fusionné, non validé contre un serveur réel ; **suite suspendue** | Run de la PR #12 : 198 tests de socle Linux et Windows, 23 essais IMAP ; aucun essai IMAP OAuth |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
-| 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
+| 6 — Distribution autonome | Chaîne écrite, **non éprouvée** | Trois constructions Windows en CI, jamais exécutées à ce jour |
 
 ## Correctif 0.4.0 alpha 2 — lisibilité sous thème sombre
 
@@ -324,6 +324,37 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
   sans en-têtes) fausse l'estimation d'autant ; le volume transféré affiché après copie
   reste, lui, mesuré sur les octets réels.
 
+## Phase 6 — ce qui est livré
+
+- `packaging/build-engine.ps1` : construction d'`imapsync.exe` avec PAR::Packer depuis le
+  commit amont épinglé, après installation des modules CPAN. Le binaire doit répondre
+  exactement `2.314` à `--version`, sinon la construction échoue.
+- `packaging/mailbox-synchroniseur.spec` : empaquetage PyInstaller **en mode dossier**,
+  exigence de conformité LGPLv3 pour Qt, pas un choix de confort.
+- `packaging/installer.iss` : installateur Inno Setup, LICENSE et THIRD_PARTY.md installés
+  à côté de l'application, historique local non supprimé à la désinstallation.
+- `.github/workflows/package.yml` : les trois constructions sur `windows-latest`, avec
+  vérification que l'exécutable démarre (`--version`), que le moteur produit annonce la
+  bonne version, et que l'application détecte le moteur embarqué.
+- `bundle.py` : localisation du moteur livré à côté de l'exécutable. Il est présélectionné
+  et reste remplaçable ; la simulation préalable et les autres garanties sont inchangées.
+- THIRD_PARTY.md énumère les composants réellement distribués et leurs obligations.
+
+### Ce qui n'est PAS éprouvé
+
+**Aucune de ces constructions n'a jamais été exécutée.** L'environnement de développement
+n'a ni Windows, ni Strawberry Perl, ni Inno Setup. Seuls l'empaquetage PyInstaller sous
+Linux et le contrat de détection du moteur ont été vérifiés localement ; 11 tests
+(`tests/test_phase6.py`) couvrent ce contrat, 223 tests de socle au total.
+
+La construction d'imapsync par PAR::Packer sous Windows est le point le plus incertain :
+plusieurs modules CPAN n'ont pas de binaire Windows et dépendent d'OpenSSL. Le premier run
+dira ce qui manque.
+
+La phase 6 ne sera consignée comme validée qu'après un run vert **et** une installation
+réussie sur une machine Windows sans Python ni Perl, avec une migration de référence.
+Aucune signature ni notarisation n'est annoncée : il n'y en a pas.
+
 ## Pourquoi la phase 4 est suspendue
 
 Le lot 4a repose sur une hypothèse qui s'est révélée fausse à l'épreuve : que l'utilisateur
@@ -351,10 +382,10 @@ changement de politique de Microsoft.
 
 ## Prochaine action
 
-Phase 6 (distribution) plutôt que la suite des phases 4 et 5 ; changement d'ordre consigné
-dans ROADMAP.md avec son motif. Un installateur Windows autonome embarquant imapsync est ce
-qui manque réellement aux utilisateurs visés, alors que l'automatisation de la phase 5
-suppose un stockage de secrets qui relevait de la phase 4.
+Lancer le workflow « Paquet Windows » et corriger ce qu'il révèle, en commençant par la
+construction du moteur. Puis installer le paquet produit sur une machine Windows dépourvue
+de Python et de Perl, y faire une migration de référence, et consigner ici le résultat.
+Tant que ces deux étapes ne sont pas franchies, l'installateur n'est pas annoncé.
 
 Rappel du plan initial (lot 3d : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,

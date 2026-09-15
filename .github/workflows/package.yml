@@ -1,0 +1,97 @@
+name: Paquet Windows
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'packaging/**'
+      - '.github/workflows/package.yml'
+      - 'src/mailbox_sync/bundle.py'
+permissions:
+  contents: read
+jobs:
+  engine:
+    name: Moteur imapsync
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Construire imapsync.exe depuis la source épinglée
+        shell: pwsh
+        run: ./packaging/build-engine.ps1
+      - name: Empreinte du binaire produit
+        shell: pwsh
+        run: |
+          Get-FileHash build/engine/imapsync.exe -Algorithm SHA256 | Format-List
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-${{ github.run_id }}
+          path: build/engine/imapsync.exe
+          if-no-files-found: error
+
+  application:
+    name: Application empaquetée
+    runs-on: windows-latest
+    needs: engine
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dépendances de construction
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "PySide6-Essentials>=6.8,<7" pyinstaller
+          python -m pip install -e . --no-deps
+      - name: Empaqueter
+        run: python -m PyInstaller --noconfirm packaging/mailbox-synchroniseur.spec
+      - name: Vérifier que l'exécutable démarre
+        shell: pwsh
+        run: |
+          $exe = "dist/Mailbox-Synchroniseur/Mailbox-Synchroniseur.exe"
+          $version = (& $exe --version | Select-Object -First 1).Trim()
+          Write-Host "Sortie : $version"
+          $expected = python -c "import sys; sys.path.insert(0,'src'); import mailbox_sync; print('Mailbox Synchroniseur ' + mailbox_sync.__version__)"
+          if ($version -ne $expected.Trim()) { throw "Version inattendue : '$version' au lieu de '$expected'" }
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-${{ github.run_id }}
+          path: build/engine
+      - name: Vérifier le moteur embarqué
+        shell: pwsh
+        run: |
+          $version = (& build/engine/imapsync.exe --version 2>&1 | Select-Object -First 1).ToString().Trim()
+          if ($version -ne "2.314") { throw "Moteur inattendu : '$version'" }
+      - name: Vérifier que l'application détecte le moteur embarqué
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/Mailbox-Synchroniseur/engine | Out-Null
+          Copy-Item build/engine/imapsync.exe dist/Mailbox-Synchroniseur/engine/
+          $found = python -c "import sys; sys.path.insert(0,'src'); from mailbox_sync.bundle import bundled_engine; print(bundled_engine('dist/Mailbox-Synchroniseur') or 'AUCUN')"
+          Write-Host "Moteur détecté : $found"
+          if ($found -eq "AUCUN") { throw "Le moteur embarqué n'est pas détecté par l'application." }
+      - name: Construire l'installateur
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $version = python -c "import sys; sys.path.insert(0,'src'); import mailbox_sync; print(mailbox_sync.__version__)"
+          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" /DAppVersion=$version packaging/installer.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installateur-${{ github.run_id }}
+          path: packaging/Output/*.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: application-${{ github.run_id }}
+          path: dist/Mailbox-Synchroniseur
+          if-no-files-found: error

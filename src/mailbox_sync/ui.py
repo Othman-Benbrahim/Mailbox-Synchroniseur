@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QInputDialog,
 )
 from . import __version__
+from .bundle import bundled_engine
 from .models import Account, Mode, Plan
 from .profiles import load_profile, save_profile
 from .runner import Runner
@@ -271,14 +272,17 @@ class Window(QMainWindow):
         engine_box = QGroupBox("Moteur de transfert")
         engine_layout = QVBoxLayout(engine_box)
         engine_row = QHBoxLayout()
-        self.engine = QLineEdit(shutil.which("imapsync") or "")
+        shipped = bundled_engine()
+        self.engine = QLineEdit(str(shipped) if shipped else (shutil.which("imapsync") or ""))
         self.engine.setPlaceholderText("Sélectionner imapsync.exe (Windows) ou l'exécutable imapsync")
         browse = QPushButton("Parcourir…")
         browse.clicked.connect(self._browse)
         engine_row.addWidget(self.engine)
         engine_row.addWidget(browse)
         engine_layout.addLayout(engine_row)
-        hint = QLabel("Cette alpha utilise une installation existante d'imapsync. La connexion OAuth "
+        hint = QLabel("Moteur imapsync fourni avec l'application ; tu peux en sélectionner un autre."
+                      if shipped else
+                      "Cette version utilise une installation existante d'imapsync. La connexion OAuth "
                       "par navigateur exige une inscription d'application à ton nom : voir docs/OAUTH.md.")
         hint.setWordWrap(True)
         hint.setObjectName("muted")
