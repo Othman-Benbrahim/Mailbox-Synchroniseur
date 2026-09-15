@@ -11,6 +11,7 @@ from .models import Account, Mode, Plan
 from .profiles import load_profile, save_profile
 from .runner import Runner
 from .folder_selector import FolderSelector
+from .filter_selector import FilterSelector
 
 STYLE = """
 QWidget { font-family: 'Segoe UI', 'DejaVu Sans'; font-size: 13px; color: #192d42; }
@@ -150,8 +151,10 @@ class Window(QMainWindow):
         self.config.addTab(accounts_page, "Comptes et connexion")
         self.folders = FolderSelector()
         self.config.addTab(self.folders, "Dossiers à copier")
+        self.filters = FilterSelector()
+        self.config.addTab(self.filters, "Filtres")
         outer.addWidget(self.config)
-        self.scope = QLabel("Périmètre : tous les dossiers · Source → destination · Simulation requise avant copie")
+        self.scope = QLabel("Périmètre : tous les dossiers · Filtres : aucun · Source → destination · Simulation requise avant copie")
         self.scope.setWordWrap(True)
         outer.addWidget(self.scope)
         actions = QHBoxLayout()
@@ -200,13 +203,17 @@ class Window(QMainWindow):
         self.destination.changed.connect(self._invalidate)
         self.engine.textChanged.connect(self._invalidate)
         self.folders.changed.connect(self._invalidate)
+        self.filters.changed.connect(self._invalidate)
 
     def _plan(self):
-        return Plan(self.source.account(), self.destination.account(), self.engine.text().strip(), self.folders.value())
+        return Plan(self.source.account(), self.destination.account(), self.engine.text().strip(),
+                    self.folders.value(), self.filters.value())
 
     def _invalidate(self):
         selected = self.folders.enabled.isChecked()
-        self.scope.setText("Périmètre : " + ("dossiers sélectionnés" if selected else "tous les dossiers") + " · Source → destination · Simulation requise")
+        self.scope.setText("Périmètre : " + ("dossiers sélectionnés" if selected else "tous les dossiers")
+                           + " · Filtres : " + self.filters.value().describe()
+                           + " · Source → destination · Simulation requise")
         self.preview_plan = None
         self.copy.setEnabled(False)
         if not self.runner.active:
@@ -225,6 +232,7 @@ class Window(QMainWindow):
                 self.source.set_account(plan.source)
                 self.destination.set_account(plan.destination)
                 self.folders.load(plan.folders)
+                self.filters.load(plan.filters)
                 # A profile is data, not permission to execute its referenced program.
                 self.engine.clear()
                 self._invalidate()
@@ -260,7 +268,7 @@ class Window(QMainWindow):
                 self._problem("Refais une simulation avec ces comptes avant de copier.")
                 return
             answer = QMessageBox.question(
-                self, "Confirmer la copie", f"Copier les dossiers du périmètre affiché de :\n{plan.source.user} ({plan.source.host})\n\nVers :\n{plan.destination.user} ({plan.destination.host})\n\nLes messages déjà copiés resteront à destination en cas d'arrêt.",
+                self, "Confirmer la copie", f"Copier les dossiers du périmètre affiché de :\n{plan.source.user} ({plan.source.host})\n\nVers :\n{plan.destination.user} ({plan.destination.host})\n\nFiltres : {plan.filters.describe()}\n\nLes messages déjà copiés resteront à destination en cas d'arrêt.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )

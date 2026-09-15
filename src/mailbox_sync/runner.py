@@ -35,7 +35,8 @@ class Runner(QObject):
     def start(self, plan, mode, passwords):
         if self.active:
             raise ValueError("Une opération est déjà en cours.")
-        self.report = MigrationReport(mode=Mode(mode))
+        self.report = MigrationReport(mode=Mode(mode), size_filter=(
+            plan.filters.max_size is not None or plan.filters.min_size is not None))
         validate_passwords(passwords)
         program, args = command(plan, mode)
         self._temp = tempfile.TemporaryDirectory(prefix="mailbox-run-")
@@ -115,7 +116,7 @@ class Runner(QObject):
         if not self.active:
             return
         if ok and (self.report.errors or (self.report.mode == Mode.COPY and
-                                          (self.report.missing or self.report.unidentified))):
+                                          (self.report.unexplained_missing or self.report.unidentified))):
             ok = False
             message = "Le bilan signale des erreurs ou des messages non transférés. Consulte le journal."
         self.kill_timer.stop()

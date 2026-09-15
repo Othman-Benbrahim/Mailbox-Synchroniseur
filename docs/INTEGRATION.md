@@ -67,6 +67,8 @@ Les versions amont utilisées sont identifiées dans `scripts/prepare_integratio
 | Quota strict Dovecot | Refus APPEND OVERQUOTA, zéro transfert et aucune perte ; après relèvement du quota, nouvelle simulation et copie intègre sans recopies |
 | QProcess | Lancement du véritable moteur depuis le runner, bilan issu de ses sorties |
 | Coupure réseau | Fermeture réelle d'un relais TCP opaque après le premier transfert, état partiel vérifié, nouvelle simulation et reprise sans recopies |
+| Filtre par dates (lot 3a, TLS direct et STARTTLS) | Seul le message dont la date interne est dans l'intervalle est copié ; nombre à copier et volume estimé de la simulation égaux à la taille RFC822.SIZE puis au volume réellement transféré ; élargissement sans recopie |
+| Filtre par taille (lot 3a, TLS direct et STARTTLS) | Message au-dessus de `--maxsize` non copié, compté par imapsync comme ignoré et absent, identifié comme exclu par le filtre ; copie confirmée ; simulation annoncée comme maximum ; copie sans filtre ensuite sans recopie |
 
 Dans le test de coupure uniquement, le débit est limité à un message par seconde
 pour couper avant la fin. Le processus est ensuite arrêté pour borner ses tentatives
@@ -84,6 +86,18 @@ Le test `test_dovecot_strict_quota_refuses_append_and_resumes` utilise Dovecot 2
 Il exige le refus APPEND `OVERQUOTA`, puis vérifie la copie après augmentation du quota.
 Il a réussi dans le run de fermeture ci-dessous. Voir [QUOTA-STRICT.md](QUOTA-STRICT.md).
 Un échec de copie ne doit toujours pas être interprété comme une annulation des copies.
+
+## Lot 3a — état de validation
+
+Les deux essais de filtres sont paramétrés sur les deux familles de serveurs
+(GreenMail en TLS direct, pymap en STARTTLS), soit 18 essais IMAP au total.
+Les variantes pymap ont réussi localement contre le moteur réel le 15 septembre
+2026 (`docs/validation-3a-pymap.xml`, exécution hors de la fixture de session du
+dépôt faute d'accès à GreenMail). Les variantes GreenMail sont exécutées par la
+tâche `imap` de la PR #3 ; STATUS.md est la référence. Ces essais encodent des
+lectures de la source imapsync (comptage des messages filtrés par taille parmi
+les absents, non-application du filtre de taille en `--dry`) confirmées par cette
+exécution locale.
 
 ## Résultat de fermeture — 15 septembre 2026
 

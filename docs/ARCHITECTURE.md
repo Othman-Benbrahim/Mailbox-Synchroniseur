@@ -7,6 +7,7 @@
 - `runner.py` : QProcess asynchrone, annulation, filtrage du journal.
 - `folders.py` : encodage des noms en UTF-7 modifié IMAP.
 - `folder_selector.py` : saisie et inversion des correspondances explicites.
+- `filter_selector.py` : saisie des filtres par dates et taille (phase 3, lot 3a).
 - `report.py` : compteurs observés et conditions de confirmation de destination.
 - `ui.py` : source/destination, simulation préalable, exécution et bilan.
 
@@ -56,3 +57,40 @@ La confirmation exige copie, sortie 0, zéro erreur, zéro message manquant,
 zéro message non identifié, absence d'arrêt et de crash. Des informations absentes
 ne deviennent pas des zéros. Un bilan contradictoire avec une sortie 0 donne un échec.
 Le rapport concerne le dernier essai de session ; son export/historique reste en phase 3.
+
+## Phase 3, lot 3a : filtres et estimation du volume
+
+`Plan.filters` est un `Filters` immuable ; `Filters()` signifie aucun filtre.
+Les dates sont des chaînes ISO strictes (`AAAA-MM-JJ`), validées avant construction
+des arguments, bornes incluses. `engine.search_criteria` produit
+`SINCE j-Mon-aaaa BEFORE j-Mon-aaaa` avec le mois anglais de la RFC 3501, indépendant
+de la locale ; la borne de fin est décalée d'un jour car `BEFORE` est strict.
+L'option `--search` s'applique aux deux comptes : la comparaison source/destination
+porte sur le même sous-ensemble. Les tailles sont des entiers d'octets positifs
+(`--maxsize` exclut au-delà, `--minsize` exclut jusqu'à la valeur incluse, sémantique
+d'imapsync). Aucun filtre n'est transmis avec `--justlogin`. L'interface édite des
+Kio entiers ; au chargement d'un profil, un maximum est arrondi vers le haut et un
+minimum vers le bas, pour ne jamais rendre le filtre plus restrictif que celui enregistré.
+
+Profil JSON v3 : clé `filters` obligatoire et exhaustive ; v1 et v2 restent lus avec
+`Filters()`. Un v2 portant `filters` ou un v3 sans est refusé.
+
+Bilan : `report.py` lit, dans les statistiques finales d'imapsync 2.314,
+`Messages transferred : 0 (could be N without --dry mode)` (messages à copier en
+simulation), `Total bytes transferred`, `Total bytes skipped`, et dans le listing
+des tailles `Host1 Total size` (messages sélectionnés dans les dossiers voulus).
+L'estimation de simulation vaut `Host1 Total size − Total bytes skipped`, seulement
+si la simulation a terminé avec code 0 et zéro erreur, jamais négative. En mode
+`--dry`, imapsync ne télécharge pas les messages (`dry1`) et n'applique donc pas
+`--maxsize`/`--minsize` : l'estimation est un maximum dans ce cas, signalé dans le texte.
+
+imapsync identifie tous les messages sélectionnés à la source avant d'appliquer le
+filtre de taille ; un message exclu par taille figure donc parmi les « absents à
+destination ». Le bilan compte les lignes `msg … skipped (… exceeds maxsize limit …)`
+et `… smaller than minsize …` ; la confirmation de présence exige que les absents
+soient exactement expliqués par ces exclusions (`unexplained_missing == 0`). Ils sont
+affichés, jamais soustraits silencieusement. Le runner ne met en échec une copie que
+sur erreurs, absents non expliqués ou messages non identifiés.
+
+Ces lectures proviennent de la source imapsync épinglée ; les essais IMAP les
+vérifient contre le moteur réel. Un libellé changé donne « non communiqué ».

@@ -10,7 +10,7 @@ import subprocess
 import pytest
 from mailbox_sync.engine import command
 from mailbox_sync.folders import imap_utf7
-from mailbox_sync.models import Account, FolderMapping, Mode, Plan
+from mailbox_sync.models import Account, Filters, FolderMapping, Mode, Plan
 from mailbox_sync.report import MigrationReport
 from mailbox_sync.runner import Runner
 
@@ -42,14 +42,15 @@ def quoted(folder):
     return '"' + imap_utf7(folder).replace('\\', '\\\\').replace('"', '\\"') + '"'
 
 
-def seed(server, folder="INBOX", count=3, offset=0):
+def seed(server, folder="INBOX", count=3, offset=0, dates=None, attachment=True):
     client = server.connect()
     try:
         if folder != "INBOX":
             assert client.create(quoted(folder))[0] == "OK"
         for index in range(count):
             flags = ("(\\Seen \\Flagged)", "(\\Answered)", "(\\Deleted)")[index % 3]
-            assert client.append(quoted(folder), flags, DATE, message(index + offset))[0] == "OK"
+            date = DATE if dates is None else dates[index]
+            assert client.append(quoted(folder), flags, date, message(index + offset, attachment))[0] == "OK"
     finally:
         client.logout()
 
@@ -82,7 +83,8 @@ def run_sync(p, mode=Mode.COPY, password1=PASSWORD, password2=PASSWORD, environm
         env.update(environment)
     result = subprocess.run([executable, *arguments], env=env, cwd=cwd, capture_output=True,
                             text=True, encoding="utf-8", errors="replace", timeout=45)
-    report = MigrationReport(mode=mode, exit_code=result.returncode)
+    report = MigrationReport(mode=mode, exit_code=result.returncode, size_filter=(
+        p.filters.max_size is not None or p.filters.min_size is not None))
     for line in result.stdout.splitlines():
         report.feed(line)
     return result, report
@@ -323,3 +325,96 @@ def test_dovecot_strict_quota_refuses_append_and_resumes(quota_pair, app, until,
     assert repeated.returncode == 0, repeated.stdout + repeated.stderr
     assert report.transferred == 0 and report.destination_confirmed
     assert snapshot(destination) == expected
+
+
+def sizes(server, folder="INBOX"):
+    """RFC822.SIZE of every message, as the engine reads it for its statistics."""
+    client = server.connect()
+    try:
+        assert client.select(quoted(folder), readonly=True)[0] == "OK"
+        status, data = client.search(None, "ALL")
+        assert status == "OK"
+        result = []
+        for uid in data[0].split():
+            status, fetched = client.fetch(uid, "(RFC822.SIZE)")
+            assert status == "OK"
+            result.append(int(re.search(rb"RFC822\.SIZE (\d+)", fetched[0])[1]))
+        return result
+    finally:
+        client.logout()
+
+
+def filtered_plan(request, kind, **options):
+    """Both server families: GreenMail in TLS direct, pymap in STARTTLS."""
+    pair = request.getfixturevalue("pair" if kind == "SSL" else "starttls_pair")
+    p = plan(pair, **options)
+    if kind == "STARTTLS":
+        p = replace(p, source=replace(p.source, port=pair[0].tls_port, security="STARTTLS"),
+                    destination=replace(p.destination, port=pair[1].tls_port, security="STARTTLS"))
+    return pair, p
+
+
+@pytest.mark.parametrize("kind", ["SSL", "STARTTLS"])
+def test_date_filter_selects_by_internal_date_and_estimates_volume(request, tmp_path, kind):
+    pair, unfiltered = filtered_plan(request, kind)
+    source, destination, _ = pair
+    seed(source, count=3, dates=['"01-Jun-2019 10:00:00 +0000"', '"01-Jun-2020 10:00:00 +0000"',
+                                 '"01-Jun-2021 10:00:00 +0000"'])
+    before_source = snapshot(source)
+    p = replace(unfiltered, filters=Filters(since="2020-01-01", until="2020-12-31"))
+    preview, report = run_sync(p, Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert snapshot(destination) == [] and snapshot(source) == before_source
+    assert report.plannable == 1, preview.stdout
+    assert report.source_bytes == sizes(source)[1], preview.stdout
+    assert report.estimated_bytes == sizes(source)[1], preview.stdout
+    copied, report = run_sync(p, cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert report.transferred == 1 and report.destination_confirmed
+    assert report.transferred_bytes == sizes(source)[1], copied.stdout
+    digest, flags, date = before_source[1]
+    assert snapshot(destination) == [(digest, flags - {b"\\Deleted"}, date)]
+    assert snapshot(source) == before_source
+    repeated, report = run_sync(p, cwd=tmp_path)
+    assert repeated.returncode == 0, repeated.stdout + repeated.stderr
+    assert report.transferred == 0 and report.destination_confirmed
+    # Widening the window copies the rest without recopying the 2020 message.
+    widened, report = run_sync(replace(unfiltered, filters=Filters(since="2019-01-01")), cwd=tmp_path)
+    assert widened.returncode == 0, widened.stdout + widened.stderr
+    assert report.transferred == 2 and report.destination_confirmed
+    assert sorted(snapshot(destination)) == sorted(
+        (digest, flags - {b"\\Deleted"}, date) for digest, flags, date in before_source)
+
+
+@pytest.mark.parametrize("kind", ["SSL", "STARTTLS"])
+def test_size_filter_skips_large_messages_and_accounts_for_them(request, tmp_path, kind):
+    pair, unfiltered = filtered_plan(request, kind)
+    source, destination, _ = pair
+    seed(source, count=1)                                # attachment: well above 4 KiB
+    seed(source, count=1, offset=10, attachment=False)   # text only: below 4 KiB
+    before_source = snapshot(source)
+    small, large = sizes(source)[1], sizes(source)[0]
+    assert small < 4096 < large
+    p = replace(unfiltered, filters=Filters(max_size=4096))
+    preview, report = run_sync(p, Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert snapshot(destination) == []
+    # Simulation does not fetch messages, so it cannot apply the size filter:
+    # the estimate is an upper bound and the report says so.
+    assert report.plannable == 2 and report.estimated_bytes == small + large, preview.stdout
+    assert "avant filtre de taille" in report.text()
+    copied, report = run_sync(p, cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert report.transferred == 1 and report.skipped == 1, copied.stdout
+    assert report.size_filtered == 1 and report.missing == 1, copied.stdout
+    assert report.unexplained_missing == 0 and report.destination_confirmed
+    assert report.transferred_bytes == small and report.skipped_bytes == large, copied.stdout
+    digest, flags, date = before_source[1]
+    assert snapshot(destination) == [(digest, flags - {b"\\Deleted"}, date)]
+    assert snapshot(source) == before_source
+    # Without the filter, the large message is copied and nothing is recopied.
+    resumed, report = run_sync(unfiltered, cwd=tmp_path)
+    assert resumed.returncode == 0, resumed.stdout + resumed.stderr
+    assert report.transferred == 1 and report.size_filtered == 0 and report.destination_confirmed
+    assert sorted(snapshot(destination)) == sorted(
+        (digest, flags - {b"\\Deleted"}, date) for digest, flags, date in before_source)
