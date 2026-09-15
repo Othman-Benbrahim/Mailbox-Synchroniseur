@@ -212,6 +212,31 @@ Décision consignée : **aucune identité d'application n'est embarquée**. L'ut
 inscrit la sienne. Motif dans docs/ARCHITECTURE.md. Conséquence : Gmail reste plus simple
 en mot de passe d'application, seul Microsoft impose réellement OAuth.
 
-Le lot 4a **n'est pas validé** contre un serveur réel : ni GreenMail ni pymap ne
+Le lot 4a est fusionné dans `431dabf` (commit testé `41579c2`, run de la PR #12 vert
+sur ses trois tâches). Il **n'est pas validé** contre un serveur réel : ni GreenMail ni pymap ne
 prennent en charge XOAUTH2. C'est l'objet du lot 4b, et STATUS.md le dit explicitement.
 Aucune compatibilité Gmail ou Microsoft 365 n'est annoncée.
+
+## Suspension de la phase 4 et changement d'ordre — 15 septembre 2026
+
+**La phase 4 s'arrête après le lot 4a.** À l'épreuve, l'inscription d'une application chez
+Microsoft s'est révélée hors de portée d'un compte personnel : le centre d'administration
+Entra rattache ces comptes à un tenant sans annuaire (erreur `AADSTS50020`), et la voie
+officielle passe par la création d'un compte Azure, avec carte bancaire. L'application vise
+des particuliers qui migrent leur boîte ; leur demander cela n'est pas défendable.
+
+Les lots 4b (validation XOAUTH2 réelle), 4c (coffre système et renouvellement) et 4d
+(particularités des fournisseurs) sont donc **abandonnés en l'état**. Le code du lot 4a
+reste en place : il fonctionne pour qui possède déjà un tenant, et n'est pas annoncé au-delà.
+
+La phase 5 (automatisation locale) est **repoussée** : ses tâches planifiées supposent un
+stockage de secrets dans le coffre du système, qui relevait de la phase 4.
+
+**La phase 6 (distribution) devient la prochaine étape.** Motif : construire un installateur
+Windows autonome, sans Python ni Perl préinstallés, est ce qui manque réellement aux
+utilisateurs visés. Changement d'ordre par rapport au plan version 1, consigné ici avec sa
+raison, conformément à la règle de suivi.
+
+Réouverture possible de la phase 4 : si une identité d'application embarquée au nom du
+mainteneur est décidée — elle l'engage personnellement auprès du fournisseur — ou si
+Microsoft rétablit un chemin d'inscription accessible aux comptes personnels.

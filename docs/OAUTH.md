@@ -14,12 +14,31 @@ ne circule.
 | Outlook.com, Microsoft 365 | **Ne fonctionne plus** | **Obligatoire** |
 | Autres fournisseurs IMAP | Généralement oui | Rarement proposé |
 
+**Pour une boîte Outlook.com personnelle, cette application n'offre donc aujourd'hui aucun
+chemin praticable** : Microsoft n'accepte plus le mot de passe et l'inscription OAuth est
+hors de portée. Un client de messagerie doté de sa propre identité d'application, comme
+Thunderbird, sait se connecter sans inscription et permet de copier des dossiers d'un compte
+à l'autre.
+
 Pour Gmail, le chemin simple reste le mot de passe d'application : activer la validation
 en deux étapes, puis générer un mot de passe sur `myaccount.google.com/apppasswords`.
 Il n'est pas disponible si le compte est inscrit au Programme Protection Avancée, ou si
 un administrateur Workspace l'interdit.
 
 ## Microsoft (Outlook.com, Microsoft 365)
+
+> **Avertissement — à lire avant de commencer.** Avec un compte **personnel** (Outlook.com,
+> Hotmail, Live), ces étapes échouent. Microsoft rattache ces comptes au tenant « Microsoft
+> Services », qui ne contient aucun annuaire où inscrire une application ; la connexion au
+> centre d'administration Entra renvoie l'erreur `AADSTS50020`. La création automatique d'un
+> annuaire lié à un compte personnel a été supprimée. La voie officielle est de créer un
+> compte Azure, donc un tenant : l'inscription d'application reste gratuite, mais l'ouverture
+> du compte Azure demande une carte bancaire.
+>
+> En conséquence, **l'OAuth Microsoft de cette application n'est pas praticable pour une
+> boîte personnelle**, et le développement de la phase 4 s'est arrêté là (voir STATUS.md).
+> Les étapes ci-dessous ne valent que si tu disposes déjà d'un tenant Entra, par exemple via
+> un compte professionnel ou scolaire.
 
 1. Ouvrir le centre d'administration Microsoft Entra, section « Inscriptions d'applications ».
 2. « Nouvelle inscription », donner un nom, choisir le type de comptes correspondant à

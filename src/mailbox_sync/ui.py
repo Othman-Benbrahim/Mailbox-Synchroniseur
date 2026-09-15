@@ -22,23 +22,51 @@ from .history_view import HistoryView
 from . import history
 
 STYLE = """
+/* Every widget the application uses states its own colours: on a system in dark
+   mode, anything left out would be dark text on a dark background. */
 QWidget { font-family: 'Segoe UI', 'DejaVu Sans'; font-size: 13px; color: #192d42; }
-QMainWindow, QScrollArea, #page { background: #f3f6fa; }
+QMainWindow, QDialog, QScrollArea, QSplitter, #page { background: #f3f6fa; }
+QMessageBox, QInputDialog, QFileDialog { background: #f3f6fa; color: #192d42; }
 QGroupBox { background: white; border: 1px solid #d6dfe9; border-radius: 10px;
             margin-top: 18px; padding: 20px 14px 14px; font-weight: bold; }
-QGroupBox::title { subcontrol-origin: margin; left: 16px; padding: 0 6px; }
-QLineEdit, QSpinBox, QComboBox { background: white; padding: 8px; border: 1px solid #b8c8d9; border-radius: 5px; }
-QLineEdit:focus, QSpinBox:focus { border: 1px solid #14736a; }
-QPushButton { padding: 9px 15px; background: white; border: 1px solid #b8c8d9; border-radius: 6px; }
+QGroupBox::title { subcontrol-origin: margin; left: 16px; padding: 0 6px; color: #192d42; }
+QLabel, QCheckBox, QRadioButton { background: transparent; color: #192d42; }
+QCheckBox:disabled, QLabel:disabled { color: #7b8898; }
+QLineEdit, QSpinBox, QComboBox, QDateEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
+    background: white; color: #192d42; padding: 8px; border: 1px solid #b8c8d9; border-radius: 5px; }
+QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus { border: 1px solid #14736a; }
+QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QDateEdit:disabled {
+    background: #edf0f4; color: #7b8898; }
+QComboBox QAbstractItemView, QCalendarWidget QAbstractItemView, QListView, QTreeView {
+    background: white; color: #192d42; selection-background-color: #146f66;
+    selection-color: white; border: 1px solid #b8c8d9; }
+QCalendarWidget QWidget { background: white; color: #192d42; }
+QCalendarWidget QToolButton { color: #192d42; background: white; }
+QTableWidget, QTableView, QListWidget { background: white; color: #192d42;
+    alternate-background-color: #f3f6fa; gridline-color: #d6dfe9;
+    selection-background-color: #146f66; selection-color: white; }
+QHeaderView::section { background: #edf2f7; color: #192d42; border: none;
+    border-right: 1px solid #d6dfe9; border-bottom: 1px solid #d6dfe9; padding: 6px; }
+QTabWidget::pane { background: white; border: 1px solid #d6dfe9; border-radius: 8px; }
+QTabBar::tab { background: #e4ebf2; color: #192d42; padding: 8px 14px;
+    border: 1px solid #d6dfe9; border-bottom: none;
+    border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 2px; }
+QTabBar::tab:selected { background: white; font-weight: bold; }
+QTabBar::tab:disabled { color: #7b8898; }
+QPushButton { padding: 9px 15px; background: white; color: #192d42;
+    border: 1px solid #b8c8d9; border-radius: 6px; }
 QPushButton:hover { background: #e7f2ef; border-color: #14736a; }
 QPushButton:disabled { color: #7b8898; background: #edf0f4; border-color: #d7dfe7; }
 QPushButton#primary { background: #146f66; color: white; border: none; font-weight: bold; }
 QPushButton#primary:disabled { background: #baccc9; color: #f5f8f7; }
-QPlainTextEdit { background: #172738; color: #e3edf5; border: none; border-radius: 7px;
+QPlainTextEdit#log { background: #172738; color: #e3edf5; border: none; border-radius: 7px;
                  font-family: 'Consolas', monospace; font-size: 12px; padding: 10px; }
-QProgressBar { border: none; background: #dfe8ef; border-radius: 3px; max-height: 6px; }
+QProgressBar { border: none; background: #dfe8ef; color: #192d42; border-radius: 3px; max-height: 6px; }
 QProgressBar::chunk { background: #188779; }
-QLabel#title { font-size: 27px; font-weight: bold; }
+QScrollBar:vertical, QScrollBar:horizontal { background: #edf0f4; border: none; }
+QScrollBar::handle { background: #b8c8d9; border-radius: 4px; }
+QToolTip { background: white; color: #192d42; border: 1px solid #b8c8d9; }
+QLabel#title { font-size: 27px; font-weight: bold; color: #192d42; }
 QLabel#muted { color: #52687c; }
 """
 
@@ -298,6 +326,7 @@ class Window(QMainWindow):
         self.progress.setTextVisible(False)
         outer.addWidget(self.progress)
         self.log = QPlainTextEdit()
+        self.log.setObjectName("log")
         self.log.setReadOnly(True)
         self.log.setMaximumBlockCount(3000)
         self.log.setMinimumHeight(150)
