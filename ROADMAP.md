@@ -121,8 +121,10 @@ local et export de rapports ; 3d déplacement et miroir. Raison : isoler le prem
 code de suppression (3d) des fonctions sans risque, et permettre une validation
 IMAP réelle par lot.
 
-**Le lot 3a est implémenté** (PR #4, branche `phase-3/filtres`). Sa validation IMAP
-réelle dépend du run GitHub de cette PR ; STATUS.md en consigne l'état. Progression
+**Le lot 3a est validé et fusionné** (PR #4, branche `phase-3/filtres`) : le
+[run 34916209481](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481) a réussi sur le commit `10637f2c862acba1758a7ee351f24b9a42f16c27`, fusionné dans `1f3ddf5987369f87b8a49722655f4d77d67ae48f`
+— 111 tests de socle sous Linux et Windows, 18 essais IMAP réels. STATUS.md en
+consigne les preuves et les limites. Progression
 et temps restant restent absents : les données du moteur (`ETA` fondée sur les
 tailles de dossiers) ne sont pas jugées assez fiables pour un affichage.
 

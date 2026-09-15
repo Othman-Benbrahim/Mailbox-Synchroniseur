@@ -2,21 +2,21 @@
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est commencée : le lot 3a
-(filtres par dates et taille, estimation du volume) est implémenté, testé sur le
-socle et vérifié localement contre imapsync 2.314 réel en STARTTLS (pymap) ; la
-variante GreenMail/TLS direct et la CI Windows attendent le run GitHub de sa PR.**
+(filtres par dates et taille, estimation du volume) est validé et fusionné.** Les
+lots 3b, 3c et 3d restent à faire.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
 la PR #2 (quota strict) dans `92064b430aa3f8f14d504728b013ca013b3f83b0`.
-Le lot 3a est livré par la PR #4 (branche `phase-3/filtres`).
+Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné dans
+`1f3ddf5987369f87b8a49722655f4d77d67ae48f`.
 
 | Phase | État | Preuve / suite |
 | --- | --- | --- |
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
-| 3 — Fonctions avancées | Lot 3a implémenté ; validation partielle locale, complète après run de la PR #4 | 111 tests de socle et 2 essais IMAP réels (variante STARTTLS/pymap) réussis localement ; variante GreenMail et Windows en attente |
+| 3 — Fonctions avancées | Lot 3a validé et fusionné ; lots 3b–3d à faire | Run 34916209481 : 111 tests de socle Linux et Windows, 18 essais IMAP réels |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
@@ -48,7 +48,23 @@ Le lot 3a est livré par la PR #4 (branche `phase-3/filtres`).
 - Pas de correspondance automatique, de miroir/déplacement, d'historique ni de
   limites de débit : lots suivants de la phase 3.
 
-## Preuves
+## Preuve de validation du lot 3a
+
+Le [run GitHub 34916209481](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481) a réussi sur le commit `10637f2c862acba1758a7ee351f24b9a42f16c27` de la PR #4,
+ensuite fusionné dans `1f3ddf5987369f87b8a49722655f4d77d67ae48f`. Il ne faut pas confondre le commit testé et le commit
+de fusion.
+
+| Tâche | Environnement | Couverture | Résultat |
+| --- | --- | --- | --- |
+| Socle Ubuntu | Ubuntu 24.04, Python 3.12 | 111 tests du socle/interface | Succès, 111 passed |
+| Socle Windows | windows-latest, Python 3.12 | Les mêmes 111 tests | Succès, 111 passed |
+| Intégration IMAP | Ubuntu 24.04, Python 3.12 | 18 essais avec imapsync 2.314 réel (GreenMail, pymap, Dovecot) | Succès, 18 passed, 0 ignoré |
+
+Le rapport `imap-results.xml` est attaché à ce run. Cette validation porte sur des
+comptes de test isolés ; elle ne qualifie ni les fournisseurs réels, ni macOS, ni les
+grands volumes.
+
+## Historique des correctifs de la PR #4
 
 Correctif après le premier run de la PR #4 (run 34915336379) : la tâche
 `unit (windows-latest)` a échoué alors que Linux passait. Cause reproduite
@@ -85,10 +101,8 @@ Exécution locale du 15 septembre 2026 : les variantes STARTTLS de ces deux essa
 plus `test_starttls_copy`, ont réussi contre imapsync 2.314 (SHA-256 épinglé,
 Mail::IMAPClient 3.43) et pymap 0.36.7, hors de la fixture de session du dépôt
 (GreenMail n'est pas téléchargeable dans ce runtime) ; rapport conservé dans
-`docs/validation-3a-pymap.xml`. Les variantes GreenMail n'ont pas encore été
-exécutées. Le jalon du lot 3a n'est validé qu'après réussite complète de la tâche
-`imap` (18 essais) et des tâches de socle du run GitHub de la PR #4 ; un test
-ignoré ne vaut pas réussite.
+`docs/validation-3a-pymap.xml`. Les variantes GreenMail ont ensuite été validées par le run GitHub ci-dessus. Le jalon du lot 3a est validé par le run 34916209481, où les 18 essais ont été exécutés,
+aucun ignoré.
 
 Le lecteur des compteurs a été écrit d'après la source imapsync épinglée
 (commit `93654c6025ff7814f983ab74dd300f9bed9282d9`, SHA-256 identique à celui de
@@ -142,10 +156,7 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-1. Suivre la PR #4, attendre le run GitHub ; si la tâche `imap` échoue sur les
-   nouveaux essais, corriger le lecteur de compteurs avant toute fusion.
-2. Reporter ici le numéro du run et le commit testé, puis fusionner.
-3. Lot 3b : correspondance automatique des dossiers proposée puis validée par
+Lot 3b : correspondance automatique des dossiers proposée puis validée par
    l'utilisateur. Lot 3c : historique local et export de rapports sans secrets.
    Lot 3d : déplacement et miroir, désactivés par défaut, avec aperçu et confirmation
    séparés des suppressions, testés sur comptes jetables avant validation.
