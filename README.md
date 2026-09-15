@@ -124,6 +124,8 @@ et l'estimation du volume (lot 3a) ; son état de validation est dans STATUS.md.
 - Pas de sauvegarde de mot de passe, OAuth, planification ni installateur autonome.
 - Progression indéterminée : pas de pourcentage ou temps restant inventé.
 - Les filtres de taille ne sont pas appliqués en simulation ; l'estimation est alors un maximum.
+- L'estimation dépend des tailles annoncées par le serveur source (`RFC822.SIZE`) ; le
+  volume affiché après copie est mesuré sur les octets réels.
 - Les messages exclus par un filtre de taille sont comptés par imapsync comme absents à
   destination ; le bilan les identifie séparément et ne les cache pas.
 - Pas de correspondance automatique des dossiers, de miroir, de déplacement ni d'historique.

@@ -67,7 +67,7 @@ Les versions amont utilisées sont identifiées dans `scripts/prepare_integratio
 | Quota strict Dovecot | Refus APPEND OVERQUOTA, zéro transfert et aucune perte ; après relèvement du quota, nouvelle simulation et copie intègre sans recopies |
 | QProcess | Lancement du véritable moteur depuis le runner, bilan issu de ses sorties |
 | Coupure réseau | Fermeture réelle d'un relais TCP opaque après le premier transfert, état partiel vérifié, nouvelle simulation et reprise sans recopies |
-| Filtre par dates (lot 3a, TLS direct et STARTTLS) | Seul le message dont la date interne est dans l'intervalle est copié ; nombre à copier et volume estimé de la simulation égaux à la taille RFC822.SIZE puis au volume réellement transféré ; élargissement sans recopie |
+| Filtre par dates (lot 3a, TLS direct et STARTTLS) | Seul le message dont la date interne est dans l'intervalle est copié ; nombre à copier et volume estimé égaux au RFC822.SIZE annoncé ; volume transféré égal aux octets réels du message (égal à l'estimation sur pymap, qui annonce des tailles exactes ; GreenMail les annonce sans en-têtes) ; élargissement sans recopie |
 | Filtre par taille (lot 3a, TLS direct et STARTTLS) | Message au-dessus de `--maxsize` non copié, compté par imapsync comme ignoré et absent, identifié comme exclu par le filtre ; copie confirmée ; simulation annoncée comme maximum ; copie sans filtre ensuite sans recopie |
 
 Dans le test de coupure uniquement, le débit est limité à un message par seconde

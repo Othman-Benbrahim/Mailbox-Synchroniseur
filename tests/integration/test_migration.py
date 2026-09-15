@@ -366,12 +366,18 @@ def test_date_filter_selects_by_internal_date_and_estimates_volume(request, tmp_
     assert preview.returncode == 0, preview.stdout + preview.stderr
     assert snapshot(destination) == [] and snapshot(source) == before_source
     assert report.plannable == 1, preview.stdout
+    # The estimate is built from the sizes the server announces (RFC822.SIZE).
     assert report.source_bytes == sizes(source)[1], preview.stdout
     assert report.estimated_bytes == sizes(source)[1], preview.stdout
     copied, report = run_sync(p, cwd=tmp_path)
     assert copied.returncode == 0, copied.stdout + copied.stderr
     assert report.transferred == 1 and report.destination_confirmed
-    assert report.transferred_bytes == sizes(source)[1], copied.stdout
+    # Transferred bytes are the real message bytes. GreenMail announces RFC822.SIZE
+    # without headers, so its estimate undershoots; pymap and Dovecot announce
+    # exact sizes and the two figures coincide there.
+    assert report.transferred_bytes == len(message(1)), copied.stdout
+    if kind == "STARTTLS":
+        assert report.transferred_bytes == sizes(source)[1], copied.stdout
     digest, flags, date = before_source[1]
     assert snapshot(destination) == [(digest, flags - {b"\\Deleted"}, date)]
     assert snapshot(source) == before_source
@@ -408,7 +414,12 @@ def test_size_filter_skips_large_messages_and_accounts_for_them(request, tmp_pat
     assert report.transferred == 1 and report.skipped == 1, copied.stdout
     assert report.size_filtered == 1 and report.missing == 1, copied.stdout
     assert report.unexplained_missing == 0 and report.destination_confirmed
-    assert report.transferred_bytes == small and report.skipped_bytes == large, copied.stdout
+    # Skipped bytes come from the announced size the filter was applied to;
+    # transferred bytes are the real bytes of the small message (see date test).
+    assert report.skipped_bytes == large, copied.stdout
+    assert report.transferred_bytes == len(message(10, attachment=False)), copied.stdout
+    if kind == "STARTTLS":
+        assert report.transferred_bytes == small, copied.stdout
     digest, flags, date = before_source[1]
     assert snapshot(destination) == [(digest, flags - {b"\\Deleted"}, date)]
     assert snapshot(source) == before_source

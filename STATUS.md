@@ -58,6 +58,17 @@ de ligne LF ; une copie avec filtre de taille était alors marquée en échec so
 Windows. `report.feed` normalise désormais les fins de ligne ; trois tests CRLF
 ajoutés, dont le faux moteur du runner qui écrit explicitement en CRLF.
 
+Second correctif après le run 34915655530 : socle Linux et Windows verts, 16 essais
+IMAP sur 18 réussis ; les deux variantes GreenMail des essais de filtres échouaient
+sur les seules comparaisons d'octets. Cause établie par les valeurs du run : GreenMail
+annonce un `RFC822.SIZE` sans en-têtes (22830 et 38 octets) alors que les messages
+transférés font 23145 et 351 octets, exactement la longueur des messages injectés et
+exactement ce que pymap annonce. Les essais distinguent désormais la taille annoncée
+par le serveur (base de l'estimation et de la décision `--maxsize`) et les octets
+réels transférés ; l'égalité des deux n'est exigée que sur pymap, qui annonce des
+tailles exactes. Le code de l'application n'a pas changé pour ce correctif.
+Conséquence documentée : l'estimation vaut ce que vaut le `RFC822.SIZE` du serveur.
+
 Socle : 111 tests réussis localement sous Linux (Python 3.12, PySide6 6.11.2,
 pytest 9.1.1) sur le code du lot 3a, dont 55 nouveaux dans `tests/test_phase3.py`.
 Ces tests utilisent un faux moteur ; ils ne valident aucune migration réelle.
@@ -124,6 +135,10 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 - Un arrêt ou une erreur n'annule pas les messages déjà copiés.
 - Le filtre par dates dépend de la commande SEARCH du serveur ; un serveur qui la
   refuse fait échouer l'opération (code 121), il n'y a pas de repli côté application.
+- L'estimation du volume et le filtre de taille reposent sur le `RFC822.SIZE` annoncé
+  par le serveur source. Un serveur qui l'annonce inexactement (GreenMail l'annonce
+  sans en-têtes) fausse l'estimation d'autant ; le volume transféré affiché après copie
+  reste, lui, mesuré sur les octets réels.
 
 ## Prochaine action
 
