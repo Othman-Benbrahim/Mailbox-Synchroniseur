@@ -14,6 +14,8 @@
 - `history.py` : historique local JSON sans secrets et texte de rapport exportable (lot 3c).
 - `history_view.py` : liste, détail, export, reprise de périmètre et suppression (lot 3c).
 - `mirror_selector.py` : armement du miroir, seule fonction destructive (lot 3d).
+- `oauth.py` : flux OAuth code+PKCE sur boucle locale, sans identité embarquée (lot 4a).
+- `oauth_worker.py` : exécution du flux hors du fil d'interface (lot 4a).
 - `report.py` : compteurs observés et conditions de confirmation de destination.
 - `ui.py` : source/destination, simulation préalable, exécution et bilan.
 
@@ -185,3 +187,31 @@ suppression, seule la confirmation ordinaire de copie s'applique.
 
 L'historique enregistre `mirror`, `expunge` et le nombre de suppressions ; le rapport
 exporté indique « Miroir : inactif — aucune suppression » quand il ne l'était pas.
+
+## Phase 4, lot 4a : OAuth pour IMAP
+
+Aucune identité d'application n'est embarquée dans le projet. L'utilisateur inscrit la
+sienne et fournit son `client_id` ; motif : une identité embarquée engage personnellement
+le mainteneur auprès du fournisseur (vérification, quotas partagés, suspension collective),
+et le scope `https://mail.google.com/` impose une vérification avec audit. Conséquence
+assumée : l'utilisateur a une procédure de console à suivre, documentée dans docs/OAUTH.md.
+
+Flux : code d'autorisation avec PKCE (S256), navigateur système, redirection vers
+`http://localhost:<port libre>/`, serveur HTTP local éphémère qui n'écoute que sur la boucle
+locale et ne journalise rien — l'URL de retour contient le code. Le `state` est comparé au
+retour ; une discordance abandonne la connexion. Aucun secret client n'est utilisé pour
+Microsoft (client public) ; Google en impose un, qui n'est pas un secret au sens strict pour
+une application de bureau et n'est donc jamais enregistré.
+
+`Account.auth` vaut `"basic"` ou `"oauth"`, avec `provider` pour le fournisseur. La valeur
+`"basic"` est choisie plutôt que `"password"` pour que le mot « password » reste absent de
+tout profil sérialisé — un test de garde le vérifie. Ces deux champs sont enregistrés dans
+le profil (ce ne sont pas des secrets) ; les profils antérieurs se relisent avec les valeurs
+par défaut.
+
+Le jeton est traité comme un mot de passe : masqué dans le journal par le Redactor, absent
+des profils et de l'historique, effacé à la fermeture et dès que l'identifiant, le
+`client_id` ou la méthode changent. Il n'est **pas** passé en argument : imapsync accepte
+`--oauthaccesstoken{1,2}` sous forme de chemin de fichier dont il lit la première ligne, et
+le runner écrit ce fichier en 0600 dans le répertoire temporaire de l'opération, supprimé à
+la fin. Les variables `IMAPSYNC_PASSWORD{1,2}` ne sont pas renseignées pour un compte OAuth.

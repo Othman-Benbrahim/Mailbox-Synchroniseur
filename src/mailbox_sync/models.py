@@ -17,6 +17,14 @@ class Account:
     user: str
     port: int = 993
     security: str = "SSL"
+    # "basic" is a password or an application password; the literal word "password"
+    # is deliberately absent from anything serialised into a profile.
+    auth: str = "basic"           # "basic" or "oauth"
+    provider: str = ""            # "microsoft" or "google" when auth == "oauth"
+
+    @property
+    def oauth(self):
+        return self.auth == "oauth"
 
     def validate(self):
         if not self.host or self.host != self.host.strip():
@@ -39,6 +47,12 @@ class Account:
             raise ValueError("Le port doit être compris entre 1 et 65535.")
         if self.security not in ("SSL", "STARTTLS"):
             raise ValueError("Une connexion TLS est obligatoire.")
+        if self.auth not in ("basic", "oauth"):
+            raise ValueError("Méthode d'authentification inconnue.")
+        if self.oauth and self.provider not in ("microsoft", "google"):
+            raise ValueError("Choisis le fournisseur OAuth du compte.")
+        if not self.oauth and self.provider:
+            raise ValueError("Un fournisseur OAuth ne s'applique qu'à une connexion OAuth.")
 
     @property
     def network_host(self):
@@ -166,6 +180,15 @@ class Plan:
                 destinations.add(destination)
 
 
-def validate_passwords(passwords):
-    if len(passwords) != 2 or any(not p or any(c in p for c in "\r\n\0") for p in passwords):
+def validate_passwords(passwords, plan=None):
+    """Each account needs one secret: a password, or an OAuth access token."""
+    if len(passwords) != 2:
         raise ValueError("Renseigne les deux mots de passe (sans retour à la ligne).")
+    accounts = (plan.source, plan.destination) if plan is not None else (None, None)
+    for secret, account in zip(passwords, accounts):
+        if account is not None and account.oauth:
+            if not secret or any(c in secret for c in "\r\n\0 "):
+                raise ValueError("Connecte le compte OAuth avant de lancer l'opération.")
+            continue
+        if not secret or any(c in secret for c in "\r\n\0"):
+            raise ValueError("Renseigne les deux mots de passe (sans retour à la ligne).")

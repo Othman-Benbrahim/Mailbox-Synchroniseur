@@ -143,7 +143,7 @@ print("There is no unidentified message on host1.")
 ''', encoding="utf-8")
     real = command
     monkeypatch.setattr("mailbox_sync.runner.command",
-                        lambda p, mode: (sys.executable, [str(script), *real(p, mode)[1]]))
+                        lambda p, mode, t=(None, None): (sys.executable, [str(script), *real(p, mode)[1]]))
     w = Window()
     w.source.set_account(base().source)
     w.destination.set_account(base().destination)
@@ -240,7 +240,7 @@ def test_a_simulation_announcing_nothing_needs_no_typed_confirmation(window, unt
     quiet = tmp_path / "quiet.py"
     quiet.write_text('print("Detected 0 errors")\nprint("There is no unidentified message on host1.")\n',
                      encoding="utf-8")
-    monkeypatch.setattr("mailbox_sync.runner.command", lambda p, mode: (sys.executable, [str(quiet)]))
+    monkeypatch.setattr("mailbox_sync.runner.command", lambda p, mode, t=(None, None): (sys.executable, [str(quiet)]))
     window.mirror.enabled.setChecked(True)
     window._run(Mode.PREVIEW)
     until(lambda: not window.runner.active)

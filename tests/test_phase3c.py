@@ -169,7 +169,7 @@ print("There is no unidentified message on host1.")
 ''', encoding="utf-8")
     from mailbox_sync.engine import command as real_command
     monkeypatch.setattr("mailbox_sync.runner.command",
-                        lambda p, mode: (sys.executable, [str(script), *real_command(p, mode)[1]]))
+                        lambda p, mode, t=(None, None): (sys.executable, [str(script), *real_command(p, mode)[1]]))
     window = Window()
     window.history_directory = history_directory
     window.history.directory = history_directory

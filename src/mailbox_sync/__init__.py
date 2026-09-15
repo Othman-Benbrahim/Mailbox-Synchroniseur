@@ -1,2 +1,2 @@
 """Mailbox Synchroniseur."""
-__version__ = "0.3.0a4"
+__version__ = "0.4.0a1"
