@@ -66,8 +66,8 @@ py -3 -m venv .venv
 
 Avec Python >=3.11 installé, lancer `sh lancer.sh`. Sélectionner un exécutable
 imapsync natif fonctionnel (pour le script Perl, ses dépendances doivent être
-installées). Cette livraison est testée sous Linux uniquement ; Windows et macOS
-nécessitent encore des essais sur les systèmes cibles.
+installées). Les tests du socle passent sous Linux et Windows. Les migrations IMAP sont
+validées sous Linux ; les migrations Windows et le fonctionnement macOS restent à qualifier.
 
 ## Moteur imapsync
 
@@ -90,9 +90,10 @@ Voir [les essais reproductibles et leurs limites](docs/INTEGRATION.md).
 Alpha de développement. Des transferts réels sont maintenant vérifiés sur des
 comptes jetables locaux : contenu MIME et pièces jointes par SHA-256, dates, états,
 reprise après coupure TCP et absence de recopies sur les fixtures.
-La compatibilité Windows, Gmail et Microsoft 365 n'est pas encore validée.
+Les migrations Windows, Gmail et Microsoft 365 ne sont pas encore validées.
 Le cas du quota annoncé plein est testé ; le refus effectif d'un APPEND par un
-serveur à quota strict reste à qualifier. La phase 2 reste ouverte sur ce point.
+serveur à quota strict dispose maintenant d'un test Dovecot, en attente de son
+résultat GitHub. La phase 2 reste ouverte sur ce point : voir [QUOTA-STRICT.md](docs/QUOTA-STRICT.md).
 
 - Sélection manuelle par noms exacts ; pas de découverte automatique des dossiers.
 - Ajouter chaque sous-dossier séparément. La destination vide conserve le nom source.
@@ -123,7 +124,8 @@ Sur une machine Linux sans affichage : `QT_QPA_PLATFORM=offscreen python -m pyte
 Sans activation explicite, les essais IMAP sont ignorés ; le socle et l'interface
 sont vérifiés avec le moteur simulé. Les essais réels nécessitent les dépendances
 de [docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
-Le workflow GitHub Actions prévoit le socle sous Linux/Windows et les essais IMAP
-sous Linux ; ses résultats ne sont connus qu'après son exécution sur GitHub.
+Le workflow GitHub Actions a validé le socle sous Linux/Windows et les 13 premiers
+essais IMAP sous Linux dans la PR #1. Le nouveau test de quota strict est ajouté
+à cette suite et attend une exécution GitHub réussie.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.

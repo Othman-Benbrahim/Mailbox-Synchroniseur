@@ -155,3 +155,44 @@ def starttls_pair(integration_tools, tmp_path, monkeypatch):
     key.chmod(0o600)
     with starttls_server(integration_tools, tmp_path, key) as source, starttls_server(integration_tools, tmp_path, key) as dest:
         yield source, dest, str(integration_tools[0])
+
+
+@pytest.fixture
+def dovecot_executable():
+    executable = os.environ.get("MAILBOX_DOVECOT")
+    if not executable:
+        pytest.skip("Strict quota test requires MAILBOX_DOVECOT; see docs/INTEGRATION.md")
+    assert sys.platform == "linux", "The strict quota fixture requires Linux"
+    assert os.getuid() != 0, "Run the Dovecot fixture as an ordinary user, not root"
+    version = subprocess.check_output([executable, "--version"], text=True, timeout=15).strip()
+    assert version.split()[0] == "2.3.21", f"Unexpected Dovecot version: {version}"
+    print("Strict quota server:", version)
+    return executable
+
+
+@pytest.fixture
+def quota_pair(dovecot_executable, integration_tools, monkeypatch):
+    import tempfile
+    from dovecot_server import DovecotServer
+
+    monkeypatch.setenv("SSL_CERT_FILE", str(integration_tools[3]))
+    # Short path: Dovecot's internal Unix socket paths must stay below 108 bytes.
+    with tempfile.TemporaryDirectory(prefix="mq-") as folder:
+        root = Path(folder)
+        key = root / "key.pem"
+        subprocess.run(["openssl", "pkcs12", "-in", str(integration_tools[2]),
+                        "-passin", f"pass:{PASSWORD}", "-nocerts", "-nodes", "-out", str(key)],
+                       check=True, capture_output=True, timeout=15)
+        key.chmod(0o600)
+        source = DovecotServer(dovecot_executable, root / "source", integration_tools[3], key, "1M")
+        destination = DovecotServer(dovecot_executable, root / "dest", integration_tools[3], key)
+        try:
+            source.start()
+            destination.start()
+            yield source, destination, str(integration_tools[0])
+        finally:
+            destination.stop()
+            source.stop()
+            for label, instance in (("source", source), ("destination", destination)):
+                if instance.log.exists():
+                    print(f"Dovecot {label} log:\n{instance.log.read_text(errors='replace')}")

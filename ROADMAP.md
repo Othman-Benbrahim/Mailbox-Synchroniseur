@@ -103,3 +103,7 @@ correspondance des dossiers et le bilan sont implémentés. Les essais du moteur
 réel sur serveurs isolés passent ; détails et preuves dans STATUS.md et
 `docs/INTEGRATION.md`. Le refus APPEND d'un serveur à quota strict reste à qualifier :
 la phase 2 demeure ouverte, sans commencer la phase 3.
+
+Le suivi quota strict ajoute un serveur Dovecot 2.3.21 avec refus APPEND réel et
+reprise après relèvement de limite. La fermeture de la phase 2 reste conditionnée
+au succès de ce nouveau test sur GitHub Actions ; voir docs/QUOTA-STRICT.md.
