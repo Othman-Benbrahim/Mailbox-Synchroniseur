@@ -82,7 +82,8 @@ sans Python ni Perl préinstallés figurent dans la phase 6.
 Le moteur doit prendre en charge les mots de passe `IMAPSYNC_PASSWORD1/2` dans son
 environnement et les options documentées dans `docs/ARCHITECTURE.md`. Le contrat
 utilisé est celui de la documentation officielle consultée pour cette livraison ;
-la version **2.314** a été testée sous Linux avec GreenMail 2.1.3 (TLS direct) et pymap 0.36.7 (STARTTLS).
+la version **2.314** a été testée sous Linux avec GreenMail 2.1.3 (TLS direct),
+pymap 0.36.7 (STARTTLS) et Dovecot 2.3.21 (quota strict).
 Voir [les essais reproductibles et leurs limites](docs/INTEGRATION.md).
 
 ## Limites actuelles
@@ -91,9 +92,10 @@ Alpha de développement. Des transferts réels sont maintenant vérifiés sur de
 comptes jetables locaux : contenu MIME et pièces jointes par SHA-256, dates, états,
 reprise après coupure TCP et absence de recopies sur les fixtures.
 Les migrations Windows, Gmail et Microsoft 365 ne sont pas encore validées.
-Le cas du quota annoncé plein est testé ; le refus effectif d'un APPEND par un
-serveur à quota strict dispose maintenant d'un test Dovecot, en attente de son
-résultat GitHub. La phase 2 reste ouverte sur ce point : voir [QUOTA-STRICT.md](docs/QUOTA-STRICT.md).
+La phase 2 est validée sur ces comptes de test, y compris le refus d'ajout par
+quota strict et la reprise après augmentation du quota : voir
+[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). Les filtres, l'historique et les autres
+fonctions de phase 3 constituent la prochaine étape du développement.
 
 - Sélection manuelle par noms exacts ; pas de découverte automatique des dossiers.
 - Ajouter chaque sous-dossier séparément. La destination vide conserve le nom source.
@@ -124,8 +126,9 @@ Sur une machine Linux sans affichage : `QT_QPA_PLATFORM=offscreen python -m pyte
 Sans activation explicite, les essais IMAP sont ignorés ; le socle et l'interface
 sont vérifiés avec le moteur simulé. Les essais réels nécessitent les dépendances
 de [docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
-Le workflow GitHub Actions a validé le socle sous Linux/Windows et les 13 premiers
-essais IMAP sous Linux dans la PR #1. Le nouveau test de quota strict est ajouté
-à cette suite et attend une exécution GitHub réussie.
+Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074)
+a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
+réels sous Linux. [STATUS.md](STATUS.md) identifie le commit testé et les limites
+de cette validation.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.

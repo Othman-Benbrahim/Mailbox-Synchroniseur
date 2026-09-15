@@ -96,14 +96,18 @@ ou notarisation qui n'a pas été réalisée.
 Synchronisation bidirectionnelle de deux boîtes actives ; contacts et calendriers ;
 archive locale EML/MBOX ; service web hébergé. Ces besoins nécessitent un autre lot.
 
-## Suivi de la livraison v0.2 alpha 1
+## Suivi de la livraison v0.2 alpha 1 — 15 septembre 2026
 
-Le périmètre et l'ordre du plan version 1 sont conservés. La sélection/mise en
-correspondance des dossiers et le bilan sont implémentés. Les essais du moteur
-réel sur serveurs isolés passent ; détails et preuves dans STATUS.md et
-`docs/INTEGRATION.md`. Le refus APPEND d'un serveur à quota strict reste à qualifier :
-la phase 2 demeure ouverte, sans commencer la phase 3.
+Le périmètre et l'ordre du plan version 1 sont conservés. **La phase 2 est terminée
+sur comptes de test isolés.** La sélection et les correspondances de dossiers,
+le bilan et les tests de migration réels sont présents.
 
-Le suivi quota strict ajoute un serveur Dovecot 2.3.21 avec refus APPEND réel et
-reprise après relèvement de limite. La fermeture de la phase 2 reste conditionnée
-au succès de ce nouveau test sur GitHub Actions ; voir docs/QUOTA-STRICT.md.
+Le [run 34911811074](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074) a réussi
+sur le commit `0eb09bfabda1a082bed6d9e881810373383f0324` : socle Linux/Windows et
+14 essais IMAP Linux. Le dernier critère, refus APPEND OVERQUOTA par Dovecot 2.3.21
+puis reprise après augmentation du quota, est validé. La PR #2 est fusionnée dans
+`92064b430aa3f8f14d504728b013ca013b3f83b0`.
+
+STATUS.md consigne les preuves et leurs limites. Cette clôture ne vaut pas
+qualification de migrations Windows/macOS, de fournisseurs réels ou de grands volumes.
+La phase 3 est la prochaine étape, sans code de phase 3 livré dans cette mise à jour.
