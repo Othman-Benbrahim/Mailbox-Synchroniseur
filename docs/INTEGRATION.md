@@ -2,7 +2,8 @@
 
 La suite lance **imapsync 2.314 réel**, sans remplacer sa commande de transfert,
 contre des comptes jetables locaux. GreenMail standalone 2.1.3 sert le TLS direct ;
-pymap 0.36.7 sert STARTTLS. Les serveurs sont des dépendances de test externes au
+pymap 0.36.7 sert STARTTLS ; Dovecot 2.3.21 applique le quota strict.
+Les serveurs sont des dépendances de test externes au
 produit. Aucun accès utilisateur ni serveur de messagerie externe n'est utilisé.
 
 ## Reproduire sous Ubuntu 24.04
@@ -47,6 +48,7 @@ Les versions amont utilisées sont identifiées dans `scripts/prepare_integratio
 | GreenMail 2.1.3 | Maven Central, distribution standalone |
 | SHA-256 GreenMail | `9457fdaf45ded6c87bf84a321a5ced4b4b5e72b1d03686b778df381378afc4c8` |
 | pymap | paquet Python `pymap==0.36.7` |
+| Dovecot | version 2.3.21, paquet Ubuntu 24.04 `dovecot-imapd` |
 
 ## Ce qui est réellement vérifié
 
@@ -62,6 +64,7 @@ Les versions amont utilisées sont identifiées dans `scripts/prepare_integratio
 | Certificats | Certificat non fiable et nom d'hôte incorrect refusés en TLS direct et STARTTLS |
 | STARTTLS | Copie réelle et intégrité ; serveur sans STARTTLS refusé sans repli en clair |
 | Quota annoncé plein | Erreur réelle d'imapsync, échec dans QProcess, aucune confirmation de migration complète |
+| Quota strict Dovecot | Refus APPEND OVERQUOTA, zéro transfert et aucune perte ; après relèvement du quota, nouvelle simulation et copie intègre sans recopies |
 | QProcess | Lancement du véritable moteur depuis le runner, bilan issu de ses sorties |
 | Coupure réseau | Fermeture réelle d'un relais TCP opaque après le premier transfert, état partiel vérifié, nouvelle simulation et reprise sans recopies |
 
@@ -71,31 +74,42 @@ de reconnexion. Le relais ne déchiffre pas TLS et ne fabrique aucune réponse I
 La reprise est un nouveau lancement du moteur, pas la reprise automatique d'un UID
 mémorisé par l'application.
 
-## Limite précise du test de quota
+## Deux tests de quota complémentaires
 
-GreenMail annonce le quota d'INBOX et son utilisation, mais accepte encore APPEND
-quand la limite est dépassée. Le test garantit que l'avertissement réel du moteur
-produit un échec et que les anciens messages restent intacts. Il ne prouve **pas**
-le traitement d'un refus APPEND `OVERQUOTA` par un serveur à quota strict.
-Le nouveau test `test_dovecot_strict_quota_refuses_append_and_resumes` utilise
-Dovecot 2.3.21 pour exiger ce refus effectif ; son résultat CI reste attendu.
-Ce cas reste nécessaire pour fermer complètement le jalon 2. La phase 3 ne commence
-pas dans cette livraison. Ne pas interpréter l'échec comme une annulation des copies.
+GreenMail annonce le quota et son utilisation, mais accepte encore APPEND quand
+la limite est dépassée. Ce premier test vérifie le statut d'échec et la conservation
+des anciens messages ; il ne constitue pas, à lui seul, une preuve de refus serveur.
 
-## Résultat de cette livraison
+Le test `test_dovecot_strict_quota_refuses_append_and_resumes` utilise Dovecot 2.3.21.
+Il exige le refus APPEND `OVERQUOTA`, puis vérifie la copie après augmentation du quota.
+Il a réussi dans le run de fermeture ci-dessous. Voir [QUOTA-STRICT.md](QUOTA-STRICT.md).
+Un échec de copie ne doit toujours pas être interprété comme une annulation des copies.
 
-Sous Linux, Python 3.12, PySide6 6.11.2, pytest 9.1.1 : **69 tests réussis en 68,49 s**,
-dont 13 essais d'intégration réelle et 56 tests du socle/interface. Le rapport JUnit
-est conservé dans `docs/validation-phase2.xml`. Le moteur utilisait des modules Perl
-installés depuis CPAN dans un répertoire de test local ; l'installation des paquets
-apt ci-dessus et le workflow GitHub Actions n'ont pas été exécutés dans ce runtime.
+## Résultat de fermeture — 15 septembre 2026
 
-Depuis cette première livraison, les 56 tests du socle ont aussi réussi sous
-Windows, et le workflow de la PR #1 a réussi. Les migrations Windows/macOS,
-Gmail/Microsoft 365 et les grands volumes ne sont pas qualifiés. Les tests couvrent des fixtures déterministes, pas toutes les heuristiques
-d'identification/dédoublonnage d'imapsync ni les particularités de chaque fournisseur.
+Le [run 34911811074](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074) a réussi
+sur le commit `0eb09bfabda1a082bed6d9e881810373383f0324` de la PR #2 :
+56 tests du socle/interface sous Ubuntu 24.04, les mêmes 56 sous windows-latest,
+et 14 essais IMAP réels sous Ubuntu 24.04. Python 3.12 est configuré pour chaque tâche.
+La tâche IMAP active explicitement MAILBOX_INTEGRATION et MAILBOX_DOVECOT :
+le test de quota strict fait partie du jalon, il ne doit pas être ignoré.
+Le rapport `imap-results.xml` est conservé dans l'artefact du run GitHub.
+La phase 2 est donc fermée pour ce périmètre ; STATUS.md en consigne les limites.
+
+## Preuve locale historique
+
+Avant ajout de Dovecot, la suite avait réussi sous Linux, Python 3.12,
+PySide6 6.11.2 et pytest 9.1.1 : 69 tests en 68,49 s, dont 13 essais IMAP et
+56 tests du socle. `docs/validation-phase2.xml` contient ce résultat historique.
+Ce fichier n'est pas le rapport des 14 essais de fermeture : cette preuve vient
+de GitHub Actions, car les sockets Unix de Dovecot sont interdits dans le runtime local.
+
+Les migrations Windows/macOS, Gmail/Microsoft 365 et les grands volumes ne sont
+pas qualifiés. Les tests couvrent des fixtures déterministes, pas toutes les
+heuristiques d'identification/dédoublonnage ni les particularités des fournisseurs.
 
 Sources des dépendances et contrats consultés :
 - https://github.com/imapsync/imapsync/tree/93654c6025ff7814f983ab74dd300f9bed9282d9
 - https://github.com/greenmail-mail-test/greenmail
 - https://github.com/icgood/pymap
+- https://github.com/dovecot/core/tree/2.3.21

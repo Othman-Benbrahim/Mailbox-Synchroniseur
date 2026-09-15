@@ -1,3 +1,8 @@
+# Texte historique de la PR #1
+
+Ce texte décrit la première livraison, avant validation du quota strict dans la
+PR #2. L'état actuel et la clôture de la phase 2 sont consignés dans [STATUS.md](../STATUS.md).
+
 La première alpha pilotait imapsync sans preuve de migration réelle et copiait tous
 les dossiers. Cette PR repart du commit initial eedaa95 pour ajouter un périmètre
 explicite et un bilan fondé sur les observations du moteur.

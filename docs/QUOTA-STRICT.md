@@ -7,7 +7,7 @@ de Dovecot 2.3.21 en TLS direct, avec le moteur imapsync 2.314 réel.
 ## Scénario exigé
 
 1. Source avec une pièce jointe ; destination avec deux anciens messages.
-2. Destination limitée à 64 Kio, backend de quota `count`, marge de dépassement nulle.
+2. Destination limitée à 64 Kio, backend de quota `count` avec `quota_vsizes = yes`, marge de dépassement nulle.
 3. Simulation sans modification des boîtes.
 4. Ajout IMAP direct refusé : réponse `NO` contenant `OVERQUOTA`.
 5. Copie par le Runner/QProcess réel : erreur, zéro message transféré et aucune
@@ -41,22 +41,31 @@ QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest tests/integration \
   -k dovecot_strict -q --tb=short
 ```
 
-## Critère de fermeture
+## Validation acquise — 15 septembre 2026
 
-Le nouveau test doit **réussir**, pas être ignoré. La tâche GitHub `imap` définit
-MAILBOX_DOVECOT et installe Dovecot ; une version inattendue ou un démarrage impossible
-fait échouer le test. Le rapport `imap-results.xml` est conservé comme artefact CI.
-La suite d'intégration complète attend désormais 14 succès, dont ce scénario.
-Après succès, mettre à jour STATUS.md avec le commit et le lien du run correspondant
-avant de commencer la phase 3.
+Le [run GitHub 34911811074](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074) a réussi
+sur le commit `0eb09bfabda1a082bed6d9e881810373383f0324`, ensuite fusionné par la
+PR #2 dans `92064b430aa3f8f14d504728b013ca013b3f83b0`.
+La [tâche imap](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074/job/104200749475)
+a validé la suite de 14 essais, incluant ce scénario. Le dernier critère de la
+phase 2 est satisfait ; STATUS.md et ROADMAP.md enregistrent sa fermeture.
 
-## État au moment de préparer ce correctif
+La tâche active MAILBOX_DOVECOT et installe la version attendue de Dovecot.
+Une version incompatible ou un serveur qui ne démarre pas fait échouer le test.
+Le rapport `imap-results.xml` est conservé dans l'artefact du run. Pour les
+vérifications futures, un test ignoré ne vaut pas réussite de ce critère.
 
-- Fusion de la PR #1 confirmée sur main, commit `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`.
-- 56 tests du socle réussis localement après ajout ; nouveau test collecté.
-- Configuration acceptée par `doveconf` 2.3.21 provenant du paquet Ubuntu.
-- Démarrage réel local impossible : les sockets Unix sont interdits dans ce runtime.
-- Aucun succès du nouveau scénario Dovecot n'est donc encore revendiqué.
+## Correctif nécessaire et provenance de la preuve
+
+La première exécution GitHub s'arrêtait à l'ajout du message source. La configuration
+du backend `count` a été complétée avec `quota_vsizes = yes`, obligatoire pour son
+initialisation, puis la suite a réussi. Les journaux serveur sont maintenant inclus
+dans le diagnostic pytest pour faciliter l'analyse d'une éventuelle régression.
+
+La configuration avait été acceptée localement par `doveconf`, mais le serveur
+n'avait pas pu démarrer dans ce runtime, où les sockets Unix sont bloqués.
+La validation réelle de ce scénario provient de GitHub Actions. Elle concerne les
+comptes isolés de cette fixture, pas une certification de fournisseurs réels.
 
 Références de configuration :
 - https://doc.dovecot.org/2.3/configuration_manual/howto/rootless/
