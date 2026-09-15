@@ -9,3 +9,7 @@ dist/
 migration.json
 .test-tools/
 ci-results/
+# Artefacts téléchargés depuis GitHub Actions (gh run download) : jamais versionnés.
+paquet/
+artifacts/
+*.exe
