@@ -1,4 +1,4 @@
-# Texte de la PR #3 — phase 3, lot 3a
+# Texte de la PR #4 — phase 3, lot 3a
 
 Titre : Phase 3 (lot 3a) : filtres par dates et taille, estimation du volume
 
@@ -15,7 +15,7 @@ premier lot de ROADMAP.md, sans code de suppression.
   expliquent les absents à destination sans faire échouer une copie complète.
 - Code de sortie 121 (échec SEARCH) traduit.
 
-Validation locale Linux : 108 tests de socle réussis (faux moteur). Deux essais
+Validation locale Linux : 111 tests de socle réussis (faux moteur). Deux essais
 IMAP réels ajoutés (filtre par dates, filtre par taille), paramétrés GreenMail et
 pymap ; variantes pymap réussies localement contre imapsync 2.314 réel
 (`docs/validation-3a-pymap.xml`). Variantes GreenMail et socle Windows à valider

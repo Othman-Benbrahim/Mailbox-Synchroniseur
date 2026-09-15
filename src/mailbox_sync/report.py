@@ -42,6 +42,9 @@ class MigrationReport:
     crashed: bool = False
 
     def feed(self, line: str):
+        # The engine ends its lines with LF on Linux and CRLF on Windows; the
+        # runner hands them over unstripped so that they are matched identically.
+        line = line.rstrip("\r\n")
         for label, attribute in (("Messages transferred", "transferred"),
                                  ("Messages skipped", "skipped"),
                                  ("Messages found in host1 not in host2", "missing"),

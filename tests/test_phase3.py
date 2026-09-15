@@ -224,6 +224,16 @@ def test_size_filtered_messages_explain_missing_but_nothing_else():
     assert MigrationReport(mode=Mode.COPY).unexplained_missing is None
 
 
+@pytest.mark.parametrize("ending", ["\n", "\r\n", ""])
+def test_counters_are_read_with_any_line_ending(ending):
+    """Windows engines and QProcess deliver CRLF; the CI on windows-latest caught this."""
+    lines = [line + ending for line in PREVIEW_OUTPUT +
+             ["msg INBOX/7 skipped (30000 exceeds maxsize limit 4096 bytes)"]]
+    r = fed(lines=lines)
+    assert (r.plannable, r.skipped, r.source_bytes, r.skipped_bytes, r.unidentified, r.errors) == (3, 2, 50000, 20000, 0, 0)
+    assert r.size_filtered == 1
+
+
 def test_preview_with_size_filter_states_the_limit():
     text = fed(size_filter=True).text()
     assert "avant filtre de taille" in text
@@ -232,13 +242,17 @@ def test_preview_with_size_filter_states_the_limit():
 
 def test_runner_copy_with_size_filter_is_not_a_failure(app, until, tmp_path, monkeypatch):
     script = tmp_path / "engine.py"
+    # Written with explicit CRLF: this is what the engine produces on Windows.
     script.write_text('''import sys
-print("msg INBOX/7 skipped (30000 exceeds maxsize limit 4096 bytes)")
-print("Messages transferred                    : 1")
-print("Messages found in host1 not in host2    : 1 messages")
-print("Total bytes transferred                 : 2000 (1.953 KiB)")
-print("Detected 0 errors")
-print("There is no unidentified message on host1.")
+out = sys.stdout.buffer
+for line in ("msg INBOX/7 skipped (30000 exceeds maxsize limit 4096 bytes)",
+             "Messages transferred                    : 1",
+             "Messages found in host1 not in host2    : 1 messages",
+             "Total bytes transferred                 : 2000 (1.953 KiB)",
+             "Detected 0 errors",
+             "There is no unidentified message on host1."):
+    out.write((line + "\\r\\n").encode())
+out.flush()
 ''', encoding="utf-8")
     monkeypatch.setattr("mailbox_sync.runner.command", lambda plan, mode: (sys.executable, [str(script)]))
     from mailbox_sync.runner import Runner

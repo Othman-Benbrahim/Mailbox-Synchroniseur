@@ -9,14 +9,14 @@ variante GreenMail/TLS direct et la CI Windows attendent le run GitHub de sa PR.
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
 la PR #2 (quota strict) dans `92064b430aa3f8f14d504728b013ca013b3f83b0`.
-Le lot 3a est livré par la PR #3 (branche `phase-3/filtres`).
+Le lot 3a est livré par la PR #4 (branche `phase-3/filtres`).
 
 | Phase | État | Preuve / suite |
 | --- | --- | --- |
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
-| 3 — Fonctions avancées | Lot 3a implémenté ; validation partielle locale, complète après run de la PR #3 | 108 tests de socle et 2 essais IMAP réels (variante STARTTLS/pymap) réussis localement ; variante GreenMail et Windows en attente |
+| 3 — Fonctions avancées | Lot 3a implémenté ; validation partielle locale, complète après run de la PR #4 | 111 tests de socle et 2 essais IMAP réels (variante STARTTLS/pymap) réussis localement ; variante GreenMail et Windows en attente |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
@@ -50,8 +50,16 @@ Le lot 3a est livré par la PR #3 (branche `phase-3/filtres`).
 
 ## Preuves
 
-Socle : 108 tests réussis localement sous Linux (Python 3.12, PySide6 6.11.2,
-pytest 9.1.1) sur le code du lot 3a, dont 52 nouveaux dans `tests/test_phase3.py`.
+Correctif après le premier run de la PR #4 (run 34915336379) : la tâche
+`unit (windows-latest)` a échoué alors que Linux passait. Cause reproduite
+localement : le moteur et QProcess livrent des fins de ligne CRLF sous Windows, et
+la reconnaissance des lignes `msg … skipped (… exceeds maxsize …)` exigeait une fin
+de ligne LF ; une copie avec filtre de taille était alors marquée en échec sous
+Windows. `report.feed` normalise désormais les fins de ligne ; trois tests CRLF
+ajoutés, dont le faux moteur du runner qui écrit explicitement en CRLF.
+
+Socle : 111 tests réussis localement sous Linux (Python 3.12, PySide6 6.11.2,
+pytest 9.1.1) sur le code du lot 3a, dont 55 nouveaux dans `tests/test_phase3.py`.
 Ces tests utilisent un faux moteur ; ils ne valident aucune migration réelle.
 
 IMAP réel : deux essais ajoutés dans `tests/integration/test_migration.py`,
@@ -68,7 +76,7 @@ Mail::IMAPClient 3.43) et pymap 0.36.7, hors de la fixture de session du dépôt
 (GreenMail n'est pas téléchargeable dans ce runtime) ; rapport conservé dans
 `docs/validation-3a-pymap.xml`. Les variantes GreenMail n'ont pas encore été
 exécutées. Le jalon du lot 3a n'est validé qu'après réussite complète de la tâche
-`imap` (18 essais) et des tâches de socle du run GitHub de la PR #3 ; un test
+`imap` (18 essais) et des tâches de socle du run GitHub de la PR #4 ; un test
 ignoré ne vaut pas réussite.
 
 Le lecteur des compteurs a été écrit d'après la source imapsync épinglée
@@ -119,7 +127,7 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-1. Ouvrir la PR #3, attendre le run GitHub ; si la tâche `imap` échoue sur les
+1. Suivre la PR #4, attendre le run GitHub ; si la tâche `imap` échoue sur les
    nouveaux essais, corriger le lecteur de compteurs avant toute fusion.
 2. Reporter ici le numéro du run et le commit testé, puis fusionner.
 3. Lot 3b : correspondance automatique des dossiers proposée puis validée par

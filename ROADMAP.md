@@ -121,7 +121,7 @@ local et export de rapports ; 3d déplacement et miroir. Raison : isoler le prem
 code de suppression (3d) des fonctions sans risque, et permettre une validation
 IMAP réelle par lot.
 
-**Le lot 3a est implémenté** (PR #3, branche `phase-3/filtres`). Sa validation IMAP
+**Le lot 3a est implémenté** (PR #4, branche `phase-3/filtres`). Sa validation IMAP
 réelle dépend du run GitHub de cette PR ; STATUS.md en consigne l'état. Progression
 et temps restant restent absents : les données du moteur (`ETA` fondée sur les
 tailles de dossiers) ne sont pas jugées assez fiables pour un affichage.

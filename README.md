@@ -151,7 +151,7 @@ sont vérifiés avec le moteur simulé. Les essais réels nécessitent les dépe
 de [docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
 Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074)
 a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
-réels sous Linux. Le lot 3a ajoute 52 tests de socle (108 au total) et 4 essais IMAP
+réels sous Linux. Le lot 3a ajoute 55 tests de socle (111 au total) et 4 essais IMAP
 réels (18 au total). [STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.
