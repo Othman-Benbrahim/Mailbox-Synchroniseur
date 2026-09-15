@@ -1,164 +1,141 @@
-# Mailbox Synchroniseur — 0.6.0 alpha 1
+# Mailbox Synchroniseur — 0.6.0
 
-Application de bureau en français pour copier des messages entre deux comptes
-IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
-L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
+Application de bureau en français pour copier des messages d'une boîte IMAP vers une
+autre, en pilotant le moteur libre imapsync. Ce qui est vérifié et ce qui ne l'est pas
+figure dans [CHANGELOG.md](CHANGELOG.md) ; l'état détaillé du projet est dans
+[STATUS.md](STATUS.md) et le plan dans [ROADMAP.md](ROADMAP.md).
 
-![Interface de la version alpha](docs/interface-alpha.png)
+![Interface](docs/interface-alpha.png)
 
-## Fonctionnalités
+## Installation
 
-- Configurer source et destination, TLS direct ou STARTTLS.
-- Se connecter par mot de passe ou mot de passe d'application ; OAuth présent mais non validé.
-- Enregistrer/ouvrir un profil sans les mots de passe ; inverser les comptes.
-- Piloter un imapsync installé : tester les accès, simuler, puis copier tous les dossiers ou une sélection explicite.
-- Renommer les dossiers à destination, y compris les dossiers Unicode et imbriqués.
-- Lire un bilan : copiés, ignorés, erreurs et présence des messages identifiés à destination.
-- Arrêter un processus ; relancer une simulation avant reprise.
-- Lire un journal de session avec masquage des mots de passe connus.
-- Interface lisible quel que soit le thème du système, clair ou sombre.
-- Filtrer par dates et par taille de message ; lire une estimation du volume après simulation.
-- Découvrir les dossiers des deux comptes et recevoir une proposition de correspondance, à vérifier.
-- Relire l'historique local des opérations et exporter un rapport, sans mot de passe.
-- Optionnellement, mettre la destination en miroir de la source (seule fonction qui supprime).
+**Windows** — télécharger l'installateur de la dernière version publiée et l'exécuter.
+Il embarque tout : ni Python, ni Perl, ni imapsync à installer séparément. Les binaires
+n'étant pas signés, Windows affiche un avertissement SmartScreen : « Informations
+complémentaires », puis « Exécuter quand même ».
 
-La copie est déverrouillée après une simulation réussie. Toute modification des
-comptes, ports, mots de passe, dossiers ou chemin du moteur invalide cette simulation.
-Le chargement d'un profil efface les secrets et oblige à sélectionner de nouveau
-l'exécutable local : le fichier du profil n'autorise pas l'exécution d'un programme.
-Le journal affiche les sorties du moteur, principalement en anglais.
+**Linux et macOS** — aucun paquet n'est fourni. Avec Python 3.11 ou plus récent, lancer
+`sh lancer.sh` depuis les sources, puis sélectionner dans l'application un exécutable
+imapsync fonctionnel. Les tests du socle passent sous Linux et Windows ; les migrations
+réelles sont validées sous Linux, macOS n'est pas qualifié.
 
-## Dossiers et bilan
+Voir aussi [le lancement depuis les sources sous Windows](#lancement-depuis-les-sources)
+si tu préfères ne pas installer.
 
-Dans « Dossiers à copier », cocher la sélection limitée et ajouter les noms source
-exacts. Renseigner éventuellement une destination différente. Les noms Unicode sont
-convertis en UTF-7 modifié IMAP. Les collisions dans la sélection sont refusées.
-Refaire une simulation après toute modification et consulter le journal avant copie.
+## Comment ça marche
 
-![Sélection des dossiers](docs/dossiers-phase2.png)
+Trois étapes, dans cet ordre, imposées par l'application :
 
-Le bouton « Découvrir et proposer… » liste les dossiers des deux comptes (une seule
-commande IMAP `LIST`, en lecture seule, TLS vérifié comme pour le moteur) et remplit le
-tableau avec une proposition : nom identique, rôle reconnu (envoyés, brouillons,
-corbeille, indésirables, archives — par attribut SPECIAL-USE du serveur ou par nom usuel
-français/anglais), casse, séparateur de hiérarchie adapté, ou dossier à créer. Les
-dossiers non sélectionnables et « tous les messages » (Gmail) sont exclus et listés avec
-leur raison. Le tableau reste modifiable et la simulation reste obligatoire : rien n'est
-copié sur la seule foi de la proposition.
+1. **Tester les accès** vérifie que les deux comptes répondent.
+2. **Simuler** montre ce qui serait copié, sans rien modifier.
+3. **Copier les messages** n'est déverrouillé qu'après une simulation réussie.
 
-![Proposition de correspondance](docs/correspondance-phase3b.png)
+Toute modification des comptes, ports, mots de passe, dossiers, filtres ou du chemin du
+moteur invalide la simulation et verrouille de nouveau la copie. La copie va dans un seul
+sens : la boîte source n'est jamais modifiée, sauf si tu actives explicitement le miroir,
+qui ne supprime qu'à destination.
 
-## Historique et export de rapports
+Le journal affiche les sorties du moteur, principalement en anglais, avec les mots de
+passe connus masqués. Il n'est pas enregistré automatiquement.
 
-Chaque opération terminée est enregistrée dans un fichier JSON du dossier de données
-utilisateur, sous `historique/`. Le chemin exact est affiché sous la liste ; la variable
-d'environnement `MAILBOX_HISTORY_DIR` permet de le changer. Une entrée contient ce que le
-bilan affiche : serveurs, identifiants, périmètre, filtres, compteurs, code de sortie et
-message. **Elle ne contient aucun mot de passe et ne reprend pas le journal de session.**
-Les 200 entrées les plus récentes sont conservées ; les plus anciennes sont effacées.
+## Connexion aux comptes
 
-Depuis l'onglet « Historique », on relit le rapport d'une opération, on l'exporte en
-fichier texte, on reprend le périmètre et les filtres d'une exécution passée (les comptes
-et les mots de passe ne sont jamais rétablis), ou on supprime une entrée ou la totalité.
+| Fournisseur | Ce qui fonctionne |
+| --- | --- |
+| Fournisseurs IMAP classiques | Mot de passe, ou mot de passe d'application selon le fournisseur |
+| Gmail | Mot de passe d'application, avec la validation en deux étapes activée sur le compte |
+| Outlook.com, Microsoft 365 | **Aucun chemin praticable** — voir ci-dessous |
 
-![Historique](docs/historique-phase3c.png)
+Microsoft n'accepte plus le mot de passe sur IMAP, et la connexion OAuth exige d'inscrire
+une application dans un annuaire Entra qu'un compte personnel ne possède pas : la voie
+officielle passe par la création d'un compte Azure. L'application propose bien OAuth
+(Microsoft et Google), sans identité d'application embarquée — tu fournis ton propre
+`client_id` — mais cette connexion n'a été validée contre aucun serveur réel. Procédure et
+limites dans [docs/OAUTH.md](docs/OAUTH.md).
 
-## Miroir : la seule fonction qui supprime
-
-Le miroir supprime **à destination** les messages qui n'existent plus à la source, pour que
-la destination reflète exactement la source. **La boîte source n'est jamais touchée** :
-l'application ne passe aucune option de suppression côté source, dans aucun mode.
-
-Par défaut, les messages sont seulement marqués « supprimé » à destination : ils restent
-récupérables tant que la boîte n'est pas vidée depuis le logiciel de messagerie. Le vidage
-définitif est une option distincte, irréversible.
-
-Quatre garde-fous, tous obligatoires :
-
-1. La case est décochée à chaque démarrage et n'est **jamais enregistrée dans un profil**.
-2. Une simulation réussie **du même plan, miroir déjà activé**, est exigée ; activer le
-   miroir invalide toute simulation précédente.
-3. La simulation annonce le nombre exact de suppressions, sans rien supprimer.
-4. La copie demande de **saisir SUPPRIMER** ; un clic ne suffit pas.
-
-Les filtres de dates ou de taille sont refusés avec le miroir : les messages exclus par un
-filtre seraient vus comme absents de la source et supprimés à destination.
-
-![Miroir](docs/miroir-phase3d.png)
-
-## Connexion OAuth
-
-Le champ « Authentification » de chaque compte propose le mot de passe (ou mot de passe
-d'application) et OAuth pour Microsoft et Google. **L'application n'embarque aucune identité
-d'application** : tu inscris la tienne chez le fournisseur et tu colles son `client_id`. La
-procédure complète, fournisseur par fournisseur, est dans [docs/OAUTH.md](docs/OAUTH.md).
-
-Pour Gmail, le mot de passe d'application reste le chemin le plus simple et fonctionne
-toujours. Pour Microsoft, OAuth serait le seul chemin, mais l'inscription d'application exige
-un tenant Entra qu'un compte personnel n'a pas : le développement de cette partie est
-suspendu et la fonction n'est utilisable que si tu disposes déjà d'un tenant.
-
-Le jeton obtenu reste en mémoire pour la session : jamais dans un profil, jamais dans le
-journal, jamais sur la ligne de commande. Il est écrit dans un fichier temporaire lisible
-par toi seul, que le moteur lit et qui disparaît à la fin de l'opération.
+TLS est obligatoire, avec vérification du certificat et du nom d'hôte, sans repli en clair.
+Les mots de passe et jetons restent en mémoire pour la session : jamais dans un profil,
+jamais dans le journal, jamais sur la ligne de commande.
 
 ![Connexion OAuth](docs/oauth-phase4a.png)
 
-## Filtres et estimation du volume
+## Choisir les dossiers
 
-L'onglet « Filtres » restreint la sélection dans le périmètre choisi. Les dates
-sont appliquées par le serveur sur la date interne IMAP de chaque message (date de
-réception ou d'archivage, pas l'en-tête « Date »), bornes incluses. Les tailles
-portent sur le message brut complet, pièces jointes incluses. Un filtre modifié
-invalide la simulation. Les profils v3 mémorisent les filtres ; les profils v1 et v2
-restent lisibles.
+Par défaut, tous les dossiers sont copiés. L'onglet « Dossiers à copier » permet de
+restreindre le périmètre et de renommer à destination. Le bouton « Découvrir et
+proposer… » liste les dossiers des deux comptes en lecture seule et remplit le tableau
+avec une proposition motivée ligne par ligne : nom identique, rôle reconnu (envoyés,
+brouillons, corbeille, indésirables, archives), casse, séparateur de hiérarchie adapté, ou
+dossier à créer. Les dossiers non sélectionnables et « tous les messages » de Gmail sont
+exclus, avec leur raison affichée.
 
-Après une simulation, le bilan indique le nombre de messages à copier et un volume
-estimé, calculé par différence entre la taille des messages sélectionnés à la source
-et celle des messages ignorés, tels qu'imapsync les publie. Le filtre de taille
-n'est appliqué que pendant la copie, car la simulation ne télécharge pas les
-messages : dans ce cas l'estimation est un maximum et le bilan le précise.
-Le bilan de copie affiche le volume réellement transféré.
+La proposition est une aide, pas une décision : le tableau reste modifiable et la
+simulation reste obligatoire.
+
+![Proposition de correspondance](docs/correspondance-phase3b.png)
+
+## Filtrer par dates et par taille
+
+L'onglet « Filtres » restreint la sélection dans le périmètre choisi. Les dates sont
+appliquées par le serveur sur la date interne IMAP de chaque message — date de réception
+ou d'archivage, pas l'en-tête « Date » — bornes incluses. Les tailles portent sur le
+message brut complet, pièces jointes comprises.
+
+Après une simulation, le bilan indique le nombre de messages à copier et un volume estimé.
+Deux réserves sur cette estimation : elle repose sur les tailles annoncées par le serveur
+source, et le filtre de taille n'est pas appliqué pendant la simulation, qui ne télécharge
+pas les messages — dans ce cas l'estimation est un maximum, et le bilan le précise. Le
+bilan de copie affiche, lui, le volume réellement transféré.
 
 ![Filtres](docs/filtres-phase3.png)
 
-Le bilan reprend les compteurs publiés par imapsync 2.314. Un compteur absent vaut
-« non communiqué ». La présence confirmée concerne les messages identifiés par le
-moteur dans le périmètre choisi ; ce n'est pas un contrôle SHA-256 de chaque boîte
-réalisé par l'application. Ce contrôle SHA-256 appartient à la suite de tests.
+## Miroir : la seule fonction qui supprime
+
+Le miroir supprime **à destination** les messages qui n'existent plus à la source. C'est la
+seule fonction capable de supprimer des messages, et **la boîte source n'est jamais
+touchée** : aucune option de suppression côté source n'est passée au moteur, dans aucun mode.
+
+Par défaut, les messages sont seulement marqués « supprimé » à destination : ils restent
+récupérables tant que la boîte n'est pas vidée depuis le logiciel de messagerie. Le vidage
+définitif est une option distincte et irréversible.
+
+Quatre garde-fous cumulés : la case est décochée à chaque démarrage et n'est jamais
+enregistrée dans un profil ; une simulation réussie du même plan, miroir déjà activé, est
+exigée ; cette simulation annonce le nombre exact de suppressions sans rien supprimer ; et
+la copie demande de saisir `SUPPRIMER` au clavier. Les filtres sont refusés avec le miroir,
+puisque les messages exclus par un filtre seraient vus comme absents de la source.
+
+![Miroir](docs/miroir-phase3d.png)
+
+## Bilan, historique et rapports
+
+Le bilan reprend les compteurs publiés par imapsync : copiés, ignorés, erreurs, absents à
+destination, volume. Un compteur absent vaut « non communiqué » — rien n'est inventé. La
+présence confirmée concerne les messages identifiés par le moteur dans le périmètre choisi ;
+ce n'est pas un contrôle SHA-256 de chaque boîte, lequel appartient à la suite de tests.
 Après un arrêt ou une erreur, la présence complète n'est jamais annoncée.
 
-## Windows : installateur
+Chaque opération terminée est enregistrée localement, en JSON, sans mot de passe et sans le
+journal. L'onglet « Historique » permet de relire un rapport, de l'exporter en texte, de
+reprendre le périmètre et les filtres d'une exécution passée, ou de tout supprimer. Ces
+fichiers sont en clair et contiennent adresses, serveurs et noms de dossiers.
 
-Un installateur autonome est construit par la chaîne d'intégration
-(`.github/workflows/package.yml`) : il embarque Python, Qt et **un moteur imapsync
-construit depuis la source amont épinglée**. Aucune installation de Python ni de Perl
-n'est nécessaire sur la machine. Le moteur fourni est présélectionné au démarrage et
-reste remplaçable par un autre exécutable de ton choix.
+![Historique](docs/historique-phase3c.png)
 
-L'installateur a été installé et utilisé sur une machine Windows dépourvue de Python et de
-Perl : le paquet est autonome. Les binaires ne sont ni signés ni notariés, donc Windows
-affiche un avertissement SmartScreen à l'installation.
+## Profils
 
-## Windows : lancement depuis les sources
+Un profil enregistre comptes, périmètre et filtres, **jamais les mots de passe**. Le charger
+efface les secrets et oblige à resélectionner l'exécutable du moteur : un fichier de profil
+n'autorise pas l'exécution d'un programme. Les profils v1 et v2 restent lisibles ; les
+nouveaux sont en v3.
 
-1. Extraire entièrement cette archive dans un dossier, par exemple
-   `D:\Documents\Mailbox-Synchroniseur`. Ne pas lancer depuis l'intérieur du ZIP.
-2. Installer Python 3.11 ou plus récent, avec le lanceur `py`.
-3. Double-cliquer sur **Lancer-Windows.bat**. Au premier lancement, un environnement
-   `.venv` est créé et PySide6 est téléchargé (connexion Internet nécessaire).
-4. Dans l'application, sélectionner un **imapsync.exe de confiance** déjà disponible
-   sur l'ordinateur. Le lancement depuis les sources n'en fournit pas ; l'installateur, si.
-5. Renseigner les deux comptes, tester les accès et lancer une simulation.
-6. Examiner le journal et cliquer sur « Copier les messages ».
+## Lancement depuis les sources
 
-Le script BAT ne nécessite pas de modifier la stratégie d'exécution PowerShell.
-Il lance Python dans l'environnement du projet, sans activation manuelle.
-Un mot de passe d'application peut être nécessaire selon le fournisseur.
-Pour Outlook.com et Microsoft 365, Microsoft n'accepte plus le mot de passe, et l'inscription
-d'application nécessaire à l'OAuth est hors de portée d'un compte personnel :
-**cette application ne propose pas de chemin praticable pour une boîte Outlook.com
-personnelle.** Raisons dans [docs/OAUTH.md](docs/OAUTH.md) et STATUS.md.
+**Windows.** Extraire entièrement l'archive dans un dossier — pas depuis l'intérieur du ZIP —
+installer Python 3.11 ou plus récent avec le lanceur `py`, puis double-cliquer sur
+**Lancer-Windows.bat**. Un environnement `.venv` est créé au premier lancement et PySide6
+téléchargé. Il faut ensuite sélectionner soi-même un `imapsync.exe` de confiance : le
+lancement depuis les sources n'en fournit pas, l'installateur si.
 
 Alternative PowerShell, depuis le dossier extrait :
 
@@ -168,80 +145,45 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m mailbox_sync
 ```
 
-## Linux / macOS
-
-Avec Python >=3.11 installé, lancer `sh lancer.sh`. Sélectionner un exécutable
-imapsync natif fonctionnel (pour le script Perl, ses dépendances doivent être
-installées). Les tests du socle passent sous Linux et Windows. Les migrations IMAP sont
-validées sous Linux ; les migrations Windows et le fonctionnement macOS restent à qualifier.
+**Linux et macOS.** `sh lancer.sh`, avec Python 3.11 ou plus récent.
 
 ## Moteur imapsync
 
 Sources amont : https://github.com/imapsync/imapsync
 Documentation et distributions de l'auteur : https://imapsync.lamiral.info/
 
-Le code source amont est libre ; certaines distributions et le support de l'auteur
-sont payants. Cette archive ne contient aucun exécutable imapsync ni ses dépendances.
-La licence NLPL d'imapsync se résume à une phrase — « No limits to do anything with
-this work and this license » — et autorise donc explicitement la redistribution d'un
-binaire construit soi-même. C'est ce que fait `packaging/build-engine.ps1`, depuis le
-commit amont épinglé et vérifié par empreinte. Voir THIRD_PARTY.md.
+Le code amont est libre, sous licence NLPL. L'installateur Windows embarque un binaire
+construit depuis le commit amont épinglé et vérifié par empreinte SHA-256
+(`packaging/build-engine.ps1`). Les archives de sources n'en contiennent aucun.
 
-Le moteur doit prendre en charge les mots de passe `IMAPSYNC_PASSWORD1/2` dans son
-environnement et les options documentées dans `docs/ARCHITECTURE.md`. Le contrat
-utilisé est celui de la documentation officielle consultée pour cette livraison ;
-la version **2.314** a été testée sous Linux avec GreenMail 2.1.3 (TLS direct),
-pymap 0.36.7 (STARTTLS) et Dovecot 2.3.21 (quota strict).
-Voir [les essais reproductibles et leurs limites](docs/INTEGRATION.md).
+Le contrat utilisé est celui de la version **2.314**, testée sous Linux avec GreenMail 2.1.3
+(TLS direct), pymap 0.36.7 (STARTTLS) et Dovecot 2.3.21 (quota strict). Voir
+[les essais reproductibles et leurs limites](docs/INTEGRATION.md).
 
-## Limites actuelles
+## Limites
 
-Alpha de développement. Des transferts réels sont maintenant vérifiés sur des
-comptes jetables locaux : contenu MIME et pièces jointes par SHA-256, dates, états,
-reprise après coupure TCP et absence de recopies sur les fixtures.
-Les migrations Windows, Gmail et Microsoft 365 ne sont pas encore validées.
-La phase 2 est validée sur ces comptes de test, y compris le refus d'ajout par
-quota strict et la reprise après augmentation du quota : voir
-[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). **La phase 3 est terminée** : filtres et
-estimation du volume, découverte et correspondance des dossiers, historique et export,
-miroir. STATUS.md porte le tableau des preuves de ses quatre lots. Le lot 3a de la phase 3 (filtres par dates et
-taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.md.
+**Non vérifié** : macOS, les très gros volumes, les migrations réelles sous Windows au-delà
+de l'essai d'installation, Gmail et Microsoft 365 en conditions réelles, la désinstallation
+propre. Les binaires ne sont ni signés ni notariés.
 
-- La proposition de correspondance est une aide, pas une décision : elle se vérifie ligne par ligne.
-- La destination vide conserve le nom source. Les sous-dossiers sont proposés un par un.
-- Les profils v1 restent lisibles ; les nouveaux profils v2 mémorisent les dossiers.
-- Un ancien lecteur v0.1 ne peut pas ouvrir les profils v2.
-- Pas de miroir, déplacement, synchronisation bidirectionnelle, contacts ou calendriers.
-- Pas de sauvegarde de mot de passe ni de jeton, pas de coffre système, pas de
-  renouvellement automatique : une session, une connexion.
-- L'installateur n'est ni signé ni notarié : Windows affichera un avertissement
-  SmartScreen. Aucune signature n'est annoncée tant qu'elle n'est pas réalisée.
-- Pas d'installateur Linux ni macOS : seule la chaîne Windows est écrite.
-- **La connexion OAuth n'a été vérifiée contre aucun serveur IMAP réel** : voir STATUS.md.
-- Pas de planification ni d'installateur autonome.
-- Pas de limite de débit configurable ; abandonnée du périmètre de la phase 3.
-- Progression indéterminée : pas de pourcentage ou temps restant inventé.
-- Les filtres de taille ne sont pas appliqués en simulation ; l'estimation est alors un maximum.
-- L'estimation dépend des tailles annoncées par le serveur source (`RFC822.SIZE`) ; le
-  volume affiché après copie est mesuré sur les octets réels.
-- Les messages exclus par un filtre de taille sont comptés par imapsync comme absents à
-  destination ; le bilan les identifie séparément et ne les cache pas.
-- Pas de déplacement (copier puis supprimer à la source) : volontairement non livré.
-- Le miroir n'est pas une synchronisation bidirectionnelle : la source fait autorité.
-- L'historique est local et en clair : il contient adresses, serveurs et noms de dossiers.
-  Le supprimer depuis l'onglet ou effacer les fichiers si ces informations sont sensibles.
-- La découverte utilise le magasin de certificats de Python, la copie celui de l'installation
-  imapsync/Perl : un certificat accepté par l'un peut être refusé par l'autre.
-- Pas de resynchronisation des états des messages déjà présents dans cette alpha.
-- Les erreurs du moteur signifient qu'une copie peut être partielle ; arrêter
-  n'annule pas les messages déjà copiés.
+**Hors périmètre, délibérément** : synchronisation bidirectionnelle, déplacement (copier
+puis supprimer à la source), contacts et calendriers, planification, coffre système pour les
+secrets, limites de débit, progression et temps restant — le moteur ne fournit pas de donnée
+assez fiable pour les calculer honnêtement.
+
+**À savoir avant de migrer** :
+
+- Une copie interrompue reste partielle : arrêter n'annule pas les messages déjà copiés, et
+  une erreur du moteur signifie qu'une copie peut être incomplète.
+- Les états des messages déjà présents à destination ne sont pas resynchronisés.
 - Les certificats doivent être acceptés par le magasin de confiance de l'installation
-  imapsync/Perl. L'application n'offre pas de désactivation de leur vérification.
-
-Les secrets restent dans la session et l'environnement du processus enfant pendant
-son exécution. Cela ne protège pas contre un autre processus local privilégié.
-Les profils contiennent des adresses et noms de serveurs. Le journal peut contenir
-des adresses et noms de dossiers et n'est pas enregistré automatiquement.
+  imapsync/Perl ; l'application n'offre aucun moyen de désactiver leur vérification. La
+  découverte des dossiers utilise, elle, le magasin de Python : un certificat accepté par
+  l'un peut être refusé par l'autre.
+- Les secrets restent dans la session et dans l'environnement du processus enfant pendant
+  son exécution. Cela ne protège pas d'un autre processus local privilégié.
+- Les profils contiennent adresses et noms de serveurs ; le journal peut contenir adresses
+  et noms de dossiers.
 
 ## Développement
 
@@ -251,16 +193,13 @@ python -m pytest -q
 ```
 
 Sur une machine Linux sans affichage : `QT_QPA_PLATFORM=offscreen python -m pytest -q`.
-Sans activation explicite, les essais IMAP sont ignorés ; le socle et l'interface
-sont vérifiés avec le moteur simulé. Les essais réels nécessitent les dépendances
-de [docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
-Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074)
-a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
-réels sous Linux. Le [run de validation du lot 3a](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481)
-a réussi : 111 tests du socle sous Linux et Windows, 18 essais IMAP réels sous Linux.
-Le [run de validation du lot 3b](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) a réussi :
-131 tests du socle sous Linux et Windows, 20 essais IMAP réels sous Linux. Le [run de validation du lot 3c](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34918761935)
-a réussi : 144 tests du socle sous Linux et Windows, 21 essais IMAP réels sous Linux.
-[STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
+Sans activation explicite, les essais IMAP sont ignorés ; le socle et l'interface sont
+vérifiés avec un moteur simulé. Les essais réels nécessitent les dépendances de
+[docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
 
-Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.
+L'intégration continue exécute 223 tests du socle sous Linux et Windows, et 23 essais IMAP
+réels sous Linux. STATUS.md nomme, pour chaque jalon, le run et le commit testé.
+
+Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants
+distribués.
+
