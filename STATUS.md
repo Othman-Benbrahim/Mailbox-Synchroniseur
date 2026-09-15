@@ -6,8 +6,8 @@ fusionné ; les lots 3b (découverte et correspondance) et 3c (historique local 
 validés et fusionnés, et **la phase 3 est terminée** : le lot 3d (miroir) est validé et
 fusionné.** Le déplacement, les limites de débit et l'affichage d'une progression sont
 écartés du périmètre, avec leurs motifs dans ROADMAP.md. **La phase 4 est commencée** : le lot 4a (connexion
-OAuth) est livré et testé sur le socle, mais **il n'a été validé contre aucun serveur IMAP
-réel** — c'est l'objet du lot 4b.
+OAuth) est fusionné après un run vert, mais **il n'a été validé contre aucun serveur IMAP
+réel** — c'est l'objet du lot 4b. Une CI verte ne vaut pas ici compatibilité fournisseur.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -21,7 +21,7 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
 | 3 — Fonctions avancées | Terminée : lots 3a, 3b, 3c et 3d validés et fusionnés | Un run vert par lot, détaillés ci-dessous |
-| 4 — OAuth et fournisseurs | Lot 4a livré, non validé contre un serveur réel ; lots 4b–4d à faire | 198 tests de socle ; aucun essai IMAP OAuth |
+| 4 — OAuth et fournisseurs | Lot 4a fusionné, non validé contre un serveur réel ; lots 4b–4d à faire | Run de la PR #12 : 198 tests de socle Linux et Windows, 23 essais IMAP ; aucun essai IMAP OAuth |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
 
@@ -53,8 +53,12 @@ En conséquence : **aucune compatibilité Gmail, Outlook.com ou Microsoft 365 n'
 annoncée**. Le lot 4b a pour seul objet de combler ce trou, avec un serveur de test validant
 réellement le jeton, puis un essai manuel sur un compte réel.
 
-Preuves disponibles : 198 tests de socle réussis localement (28 nouveaux,
-`tests/test_phase4.py`), dont l'exécution du flux complet contre un vrai serveur HTTP local.
+Preuves disponibles : le run GitHub de la PR #12 a réussi sur le commit `41579c2`,
+fusionné dans `431dabf` — 198 tests du socle sous Ubuntu 24.04 et sous windows-latest,
+23 essais IMAP réels (inchangés : ce lot n'en ajoute aucun). Les 28 nouveaux tests sont dans
+`tests/test_phase4.py` et comprennent l'exécution du flux complet contre un vrai serveur HTTP
+de boucle locale. Ce que ce run prouve, c'est la mécanique du flux et le traitement du jeton
+comme secret — pas qu'un serveur IMAP accepte ce jeton.
 
 ## Preuves de la phase 3
 
