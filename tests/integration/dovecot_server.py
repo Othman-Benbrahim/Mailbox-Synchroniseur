@@ -65,6 +65,7 @@ userdb {{
 }}
 plugin {{
  quota = count:User quota
+ quota_vsizes = yes
  quota_rule = *:storage={self.limit}
  quota_grace = 0
 }}

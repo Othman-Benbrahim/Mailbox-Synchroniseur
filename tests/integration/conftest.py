@@ -193,3 +193,6 @@ def quota_pair(dovecot_executable, integration_tools, monkeypatch):
         finally:
             destination.stop()
             source.stop()
+            for label, instance in (("source", source), ("destination", destination)):
+                if instance.log.exists():
+                    print(f"Dovecot {label} log:\n{instance.log.read_text(errors='replace')}")
