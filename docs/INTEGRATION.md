@@ -117,7 +117,8 @@ L'essai `test_history_of_a_real_run_carries_no_secret_and_matches_the_engine` ut
 fixture GreenMail `pair` et le Runner réel. Il a été exécuté localement avec pymap
 substitué à GreenMail (indisponible dans ce runtime), rapport
 `docs/validation-3c-pymap.xml` : cette exécution vaut pour la logique de l'essai, pas pour
-la fixture GreenMail elle-même, qui est validée par le run GitHub de la PR du lot 3c.
+la fixture GreenMail elle-même, validée par le [run 34918761935](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34918761935) sur le commit `b5b68cfdef206c96dc86590e214cdc4e1ae6e0e8`
+(21 essais, aucun ignoré).
 Les essais écrivent leur historique dans un dossier temporaire (`MAILBOX_HISTORY_DIR`) :
 aucun test ne touche l'historique réel de l'utilisateur.
 

@@ -3,8 +3,8 @@
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
 fusionné ; les lots 3b (découverte et correspondance) et 3c (historique local et export) sont
-livrés ; 3b est validé et fusionné, 3c est testé sur le socle et vérifié localement, sa
-validation GreenMail et Windows attend le run GitHub de sa PR.** Lot 3d à faire.
+validés et fusionnés.** Lot 3d à faire : déplacement et miroir, premier code de suppression
+du projet.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -17,7 +17,7 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
-| 3 — Fonctions avancées | Lots 3a et 3b validés et fusionnés ; lot 3c livré, validation en attente ; 3d à faire | Lot 3a : run 34916209481. Lot 3b : run 34917709552. Lot 3c : 144 tests de socle locaux |
+| 3 — Fonctions avancées | Lots 3a, 3b et 3c validés et fusionnés ; 3d à faire | Lot 3a : run 34916209481. Lot 3b : run 34917709552. Lot 3c : run 34918761935 |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
@@ -35,12 +35,18 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 - Un échec d'écriture de l'historique est signalé dans le journal et n'interrompt pas
   l'opération.
 
-Preuves : 144 tests de socle réussis localement (13 nouveaux, `tests/test_phase3c.py`),
-sous trois fuseaux horaires différents. Essai IMAP
-`test_history_of_a_real_run_carries_no_secret_and_matches_the_engine` réussi localement,
-avec pymap substitué à GreenMail faute d'accès à ce dernier dans ce runtime
-(`docs/validation-3c-pymap.xml`) ; la variante GreenMail et le socle Windows sont à
-valider par le run GitHub de la PR du lot 3c. Un test ignoré ne vaut pas réussite.
+### Preuve de validation du lot 3c
+
+Le [run GitHub 34918761935](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34918761935) a réussi sur le commit `b5b68cfdef206c96dc86590e214cdc4e1ae6e0e8` de la PR #8,
+ensuite fusionné dans `ffd4018e2c196aca1e9cd60a2e7c122652bf2e75` : 144 tests du socle sous Ubuntu 24.04, les mêmes 144 sous
+windows-latest, et 21 essais IMAP réels sous Ubuntu 24.04, **aucun ignoré**. Le rapport
+`imap-results.xml` est attaché au run.
+
+Avant ce run, les 144 tests de socle avaient été exécutés localement sous trois fuseaux
+horaires différents (le nom des fichiers d'historique dépend de l'heure locale), et l'essai
+`test_history_of_a_real_run_carries_no_secret_and_matches_the_engine` avait été exécuté avec
+pymap substitué à GreenMail faute d'accès à ce dernier (`docs/validation-3c-pymap.xml`) ;
+la fixture GreenMail a été validée par la CI.
 
 Limites du lot 3c : l'historique est en clair sur le disque et contient adresses, serveurs
 et noms de dossiers ; il n'est pas chiffré et n'est pas protégé contre un autre processus
@@ -214,7 +220,7 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-Ouvrir la PR du lot 3c et exiger 144 + 144 + 21 sans ignoré. Lot 3d ensuite : déplacement
+Lot 3d : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,
 testés sur comptes jetables avant validation.
 
