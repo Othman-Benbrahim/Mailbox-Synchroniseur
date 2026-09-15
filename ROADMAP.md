@@ -145,8 +145,9 @@ d'imapsync a été écartée. Décision prise après discussion. Voir docs/ARCHI
 
 ## Suivi de la livraison v0.3 alpha 3 — 15 septembre 2026 (lot 3c)
 
-Lot 3c implémenté : historique local et export de rapports sans secrets, au format JSON,
-un fichier par exécution. Décision de format prise avec l'utilisateur (JSON plutôt que
+**Lot 3c validé et fusionné** : historique local et export de rapports sans secrets, au
+format JSON, un fichier par exécution. Le [run 34918761935](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34918761935) a réussi sur le commit
+`b5b68cfdef206c96dc86590e214cdc4e1ae6e0e8`, fusionné dans `ffd4018e2c196aca1e9cd60a2e7c122652bf2e75` (144 / 144 / 21, aucun essai ignoré). Décision de format prise avec l'utilisateur (JSON plutôt que
 SQLite) ; motifs dans docs/ARCHITECTURE.md.
 
 Reste de la phase 3 : lot 3d, déplacement et miroir. Premier code de suppression du projet,

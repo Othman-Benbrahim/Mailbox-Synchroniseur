@@ -188,8 +188,8 @@ a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
 réels sous Linux. Le [run de validation du lot 3a](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481)
 a réussi : 111 tests du socle sous Linux et Windows, 18 essais IMAP réels sous Linux.
 Le [run de validation du lot 3b](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) a réussi :
-131 tests du socle sous Linux et Windows, 20 essais IMAP réels sous Linux. Le lot 3c
-ajoute 13 tests de socle (144) et 1 essai IMAP réel (21) ; son état est dans STATUS.md.
+131 tests du socle sous Linux et Windows, 20 essais IMAP réels sous Linux. Le [run de validation du lot 3c](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34918761935)
+a réussi : 144 tests du socle sous Linux et Windows, 21 essais IMAP réels sous Linux.
 [STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.
