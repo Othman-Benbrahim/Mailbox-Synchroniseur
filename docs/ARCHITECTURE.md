@@ -13,6 +13,7 @@
 - `discovery_worker.py` : exécution de la découverte hors du fil d'interface (lot 3b).
 - `history.py` : historique local JSON sans secrets et texte de rapport exportable (lot 3c).
 - `history_view.py` : liste, détail, export, reprise de périmètre et suppression (lot 3c).
+- `mirror_selector.py` : armement du miroir, seule fonction destructive (lot 3d).
 - `report.py` : compteurs observés et conditions de confirmation de destination.
 - `ui.py` : source/destination, simulation préalable, exécution et bilan.
 
@@ -153,3 +154,34 @@ L'échec d'écriture de l'historique est signalé dans le journal et n'interromp
 l'opération : l'historique est une commodité, pas un élément du chemin critique. La reprise
 d'un périmètre passé recharge dossiers et filtres seulement ; elle ne rétablit ni compte, ni
 secret, et invalide la simulation comme toute modification.
+
+## Phase 3, lot 3d : miroir
+
+Périmètre décidé : **miroir seulement** (`--delete2`). Le déplacement (`--delete1`) n'est pas
+livré et ne le sera pas par défaut : supprimer les originaux d'une boîte en cours de
+migration est l'erreur irréversible du domaine, et imapsync recommande lui-même de ne le
+faire qu'après vérification séparée. `--nodelete1` est passé explicitement dans **tous** les
+modes, y compris sans miroir, pour que le contrat soit lisible dans la ligne de commande.
+
+`--delete2` active de lui-même `uidexpunge2`, ou `expunge2` à défaut : la destination serait
+vidée sans que l'utilisateur l'ait demandé. Les deux sont donc forcés à `--noexpunge2
+--nouidexpunge2`, et le vidage n'a lieu que si l'utilisateur coche l'option dédiée
+(`--expunge2`). Par défaut le miroir marque `\Deleted` : réversible depuis le client de
+messagerie de l'utilisateur.
+
+`Plan.mirror` et `Plan.expunge` participent à l'égalité du plan : armer le miroir invalide
+la simulation précédente, donc la copie exige une simulation faite miroir armé. Ces deux
+champs ne sont **pas** sérialisés dans le profil : un mode destructif ne se restaure jamais
+depuis un fichier. Le miroir est refusé avec un filtre actif : un message masqué par un
+filtre serait vu comme absent de la source et supprimé à destination — refus explicite,
+jamais un filtrage silencieux des suppressions.
+
+Le compteur de suppressions vient des lignes `Host2: msg …/… marked \Deleted` du moteur,
+émises aussi en mode `--dry` (suivies de « not really since --dry mode »). La simulation
+fournit donc un décompte exact sans rien supprimer, décompte réutilisé pour l'aperçu de
+confirmation. La confirmation exige la saisie de `SUPPRIMER` ; un `QMessageBox` à deux
+boutons a été jugé insuffisant pour une action destructive. Si la simulation annonce zéro
+suppression, seule la confirmation ordinaire de copie s'applique.
+
+L'historique enregistre `mirror`, `expunge` et le nombre de suppressions ; le rapport
+exporté indique « Miroir : inactif — aucune suppression » quand il ne l'était pas.

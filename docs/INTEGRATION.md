@@ -71,6 +71,8 @@ Les versions amont utilisées sont identifiées dans `scripts/prepare_integratio
 | Filtre par taille (lot 3a, TLS direct et STARTTLS) | Message au-dessus de `--maxsize` non copié, compté par imapsync comme ignoré et absent, identifié comme exclu par le filtre ; copie confirmée ; simulation annoncée comme maximum ; copie sans filtre ensuite sans recopie |
 | Découverte et proposition (lot 3b, TLS direct et STARTTLS) | `LIST` réel sur les deux comptes avec certificat vérifié ; mauvais mot de passe et mauvais nom d'hôte refusés ; rien d'écrit par la découverte ; proposition `Envoyés → Sent Items`, dossier Unicode imbriqué conservé ; copie réelle pilotée par la proposition, contenu vérifié par SHA-256 |
 | Historique d'une copie réelle (lot 3c) | L'entrée JSON d'une copie réelle reprend les compteurs du moteur, ne contient ni le mot de passe ni `IMAPSYNC_PASSWORD`, et son rapport exporté non plus |
+| Miroir (lot 3d) | Simulation annonçant le nombre exact de suppressions sans rien supprimer ; copie supprimant uniquement le message absent de la source, à destination, par marquage `\Deleted` réversible ; source inchangée ; sans miroir, aucun marquage |
+| Miroir avec vidage (lot 3d) | Les messages absents de la source disparaissent réellement de la destination ; la source reste intacte |
 
 Dans le test de coupure uniquement, le débit est limité à un message par seconde
 pour couper avant la fin. Le processus est ensuite arrêté pour borner ses tentatives
@@ -121,6 +123,14 @@ la fixture GreenMail elle-même, validée par le [run 34918761935](https://githu
 (21 essais, aucun ignoré).
 Les essais écrivent leur historique dans un dossier temporaire (`MAILBOX_HISTORY_DIR`) :
 aucun test ne touche l'historique réel de l'utilisateur.
+
+## Lot 3d — état de validation
+
+Les deux essais de miroir utilisent la fixture GreenMail `pair`. Ils ont été exécutés
+localement avec pymap substitué à GreenMail (indisponible dans ce runtime), rapport
+`docs/validation-3d-pymap.xml` ; la fixture GreenMail est validée par le run GitHub de la
+PR du lot 3d. Les comparaisons de messages se font à l'intérieur d'une même boîte : les
+frontières MIME étant aléatoires, deux dépôts du même message n'ont pas le même SHA-256.
 
 ## Résultat de fermeture — 15 septembre 2026
 

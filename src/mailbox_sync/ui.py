@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QFileDialog, QFormLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPlainTextEdit,
     QProgressBar, QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget, QTabWidget,
+    QInputDialog,
 )
 from . import __version__
 from .models import Account, Mode, Plan
@@ -13,6 +14,7 @@ from .profiles import load_profile, save_profile
 from .runner import Runner
 from .folder_selector import FolderSelector
 from .filter_selector import FilterSelector
+from .mirror_selector import MirrorSelector
 from .discovery_worker import DiscoveryWorker
 from .history_view import HistoryView
 from . import history
@@ -96,6 +98,7 @@ class Window(QMainWindow):
         self.setMinimumSize(780, 620)
         self.setStyleSheet(STYLE)
         self.preview_plan = None
+        self.preview_report = None
         self.current_plan = None
         self.current_mode = None
         self.close_after_run = False
@@ -160,6 +163,8 @@ class Window(QMainWindow):
         self.config.addTab(self.folders, "Dossiers à copier")
         self.filters = FilterSelector()
         self.config.addTab(self.filters, "Filtres")
+        self.mirror = MirrorSelector()
+        self.config.addTab(self.mirror, "Miroir")
         self.history = HistoryView(self.history_directory)
         self.history.reuse_requested.connect(self._reuse)
         self.config.addTab(self.history, "Historique")
@@ -215,6 +220,7 @@ class Window(QMainWindow):
         self.folders.changed.connect(self._invalidate)
         self.folders.discover_requested.connect(self._discover)
         self.filters.changed.connect(self._invalidate)
+        self.mirror.changed.connect(self._invalidate)
 
     def _discover(self):
         if self.runner.active or self.discovery is not None:
@@ -265,15 +271,21 @@ class Window(QMainWindow):
         self._problem(message)
 
     def _plan(self):
+        mirror, expunge = self.mirror.value()
         return Plan(self.source.account(), self.destination.account(), self.engine.text().strip(),
-                    self.folders.value(), self.filters.value())
+                    self.folders.value(), self.filters.value(), mirror, expunge)
 
     def _invalidate(self):
         selected = self.folders.enabled.isChecked()
+        mirror, expunge = self.mirror.value()
         self.scope.setText("Périmètre : " + ("dossiers sélectionnés" if selected else "tous les dossiers")
                            + " · Filtres : " + self.filters.value().describe()
-                           + " · Source → destination · Simulation requise")
+                           + " · " + ("MIROIR ACTIF : suppressions à destination"
+                                      + (" avec vidage définitif" if expunge else "")
+                                      if mirror else "Source → destination")
+                           + " · Simulation requise")
         self.preview_plan = None
+        self.preview_report = None
         self.copy.setEnabled(False)
         if not self.runner.active:
             self.status.setText("Configuration modifiée. Une simulation réussie est nécessaire avant la copie.")
@@ -326,6 +338,8 @@ class Window(QMainWindow):
             if self.preview_plan != plan:
                 self._problem("Refais une simulation avec ces comptes avant de copier.")
                 return
+            if plan.destructive and not self._confirm_deletions(plan):
+                return
             answer = QMessageBox.question(
                 self, "Confirmer la copie", f"Copier les dossiers du périmètre affiché de :\n{plan.source.user} ({plan.source.host})\n\nVers :\n{plan.destination.user} ({plan.destination.host})\n\nFiltres : {plan.filters.describe()}\n\nLes messages déjà copiés resteront à destination en cas d'arrêt.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -334,6 +348,7 @@ class Window(QMainWindow):
             if answer != QMessageBox.StandardButton.Yes:
                 return
         self.preview_plan = None
+        self.preview_report = None
         self.copy.setEnabled(False)
         self.log.clear()
         self.summary.setText("Bilan en attente…")
@@ -353,6 +368,32 @@ class Window(QMainWindow):
             self._problem(str(exc))
             return
 
+    def _confirm_deletions(self, plan):
+        """Second gate, for destructive runs only: show the number of deletions the
+        simulation announced and require the user to type a word."""
+        announced = self.preview_report.marked_deleted if self.preview_report else None
+        if announced is None:
+            self._problem("Refais une simulation avec le miroir activé avant de copier.")
+            return False
+        if announced == 0:
+            return True
+        effect = ("Ces messages seront définitivement retirés de la destination."
+                  if plan.expunge else
+                  "Ces messages seront marqués « supprimé » à destination ; ils restent "
+                  "récupérables tant que tu ne vides pas la boîte.")
+        typed, accepted = QInputDialog.getText(
+            self, "Confirmer les suppressions",
+            f"La simulation annonce {announced} message(s) à supprimer à destination "
+            f"({plan.destination.user} sur {plan.destination.host}).\n\n{effect}\n"
+            "La boîte source n'est pas touchée.\n\n"
+            "Pour confirmer, saisis SUPPRIMER en majuscules :")
+        if not accepted:
+            return False
+        if typed.strip() != "SUPPRIMER":
+            self._problem("Confirmation incorrecte : aucune suppression n'a été lancée.")
+            return False
+        return True
+
     def _stop(self):
         self.stop.setEnabled(False)
         self.runner.stop()
@@ -370,6 +411,7 @@ class Window(QMainWindow):
         self.progress.setValue(1 if ok else 0)
         if ok and self.current_mode == Mode.PREVIEW:
             self.preview_plan = self.current_plan
+            self.preview_report = self.runner.report
             message = "Simulation terminée. Vérifie le journal, puis lance la copie."
         self.copy.setEnabled(self.preview_plan is not None)
         self._record(ok, message)

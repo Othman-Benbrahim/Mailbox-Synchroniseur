@@ -37,6 +37,10 @@ class MigrationReport:
     transferred_bytes: int | None = None
     size_filtered: int = 0            # "msg F/UID skipped (N exceeds maxsize…)" lines, copy only
     size_filter: bool = False         # the plan carries a size filter; set by the caller
+    mirror: bool = False              # the plan mirrors; set by the caller
+    marked_deleted: int = 0           # "Host2: msg F/UID marked \Deleted on host2" lines
+    deleted_folders: int | None = None
+    expunged: bool = False            # the plan asked to empty, not only to mark
     exit_code: int | None = None
     cancelled: bool = False
     crashed: bool = False
@@ -62,6 +66,13 @@ class MigrationReport:
             self.errors = int(match[1])
         if re.match(r"^msg .+ skipped \(\d+ (?:exceeds maxsize limit|smaller than minsize) \d+ bytes\)$", line):
             self.size_filtered += 1
+        # Printed once per message the engine marks \Deleted at the destination, in dry
+        # mode too (followed there by "(not really since --dry mode)").
+        if re.match(r"^Host2: msg .+ marked \\Deleted", line):
+            self.marked_deleted += 1
+        match = re.match(r"^Folders deleted on host2\s*:\s*(\d+)\b", line)
+        if match:
+            self.deleted_folders = int(match[1])
         if line.startswith("There is no unidentified message on host1."):
             self.unidentified = 0
         match = re.match(r"^There are (\d+) unidentified messages", line)
@@ -101,6 +112,18 @@ class MigrationReport:
         estimate = self.source_bytes - self.skipped_bytes
         return estimate if estimate >= 0 else None
 
+    @property
+    def deletion_summary(self):
+        """What a mirror run announces or has done at the destination."""
+        if not self.mirror:
+            return ""
+        if self.mode == Mode.PREVIEW:
+            return (f"\nSuppressions annoncées à destination : {self.marked_deleted} message(s). "
+                    "Aucune suppression n'a eu lieu pendant la simulation.")
+        return (f"\nSupprimés à destination : {self.marked_deleted} message(s) marqués « supprimé »"
+                + (" et définitivement retirés." if self.expunged else
+                   " ; ils restent récupérables tant que la boîte n'est pas vidée."))
+
     def text(self):
         def number(value):
             return str(value) if value is not None else "non communiqué"
@@ -115,13 +138,15 @@ class MigrationReport:
             return (f"Simulation — À copier : {number(self.plannable)} · Ignorés : {number(self.skipped)} · "
                     f"Erreurs : {number(self.errors)} · Absents à destination : {number(self.missing)}\n"
                     f"Volume estimé à copier : {size(self.estimated_bytes)}"
-                    f" (source sélectionnée : {size(self.source_bytes)} · ignoré : {size(self.skipped_bytes)}{caveat})")
+                    f" (source sélectionnée : {size(self.source_bytes)} · ignoré : {size(self.skipped_bytes)}{caveat})"
+                    + self.deletion_summary)
         missing = number(self.missing)
         if self.size_filtered:
             missing += f" (dont {self.size_filtered} exclus par le filtre de taille)"
         return (f"Copiés : {number(self.transferred)} · Ignorés : {number(self.skipped)} · "
                 f"Erreurs : {number(self.errors)} · Absents à destination : {missing}\n"
                 f"Volume transféré : {size(self.transferred_bytes)}\n"
+                + self.deletion_summary.lstrip("\n") + ("\n" if self.mirror else "")
                 + ("Présence des messages identifiés confirmée par imapsync"
                    + (", hors messages exclus par le filtre de taille." if self.size_filtered else ".")
                    if self.destination_confirmed else "Présence complète à destination non confirmée."))

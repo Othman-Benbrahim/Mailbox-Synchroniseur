@@ -36,7 +36,8 @@ class Runner(QObject):
         if self.active:
             raise ValueError("Une opération est déjà en cours.")
         self.report = MigrationReport(mode=Mode(mode), size_filter=(
-            plan.filters.max_size is not None or plan.filters.min_size is not None))
+            plan.filters.max_size is not None or plan.filters.min_size is not None),
+            mirror=plan.mirror and Mode(mode) != Mode.LOGIN, expunged=plan.expunge)
         validate_passwords(passwords)
         program, args = command(plan, mode)
         self._temp = tempfile.TemporaryDirectory(prefix="mailbox-run-")

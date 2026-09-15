@@ -154,3 +154,23 @@ Reste de la phase 3 : lot 3d, déplacement et miroir. Premier code de suppressio
 donc désactivés par défaut, aperçu explicite des suppressions et confirmation séparée,
 testés sur comptes jetables avant toute validation. Les limites de débit prévues par la
 phase 3 seront traitées avec ce lot ou consignées comme abandonnées.
+
+## Suivi de la livraison v0.3 alpha 4 — 15 septembre 2026 (lot 3d)
+
+Lot 3d implémenté : miroir, première et seule fonction de suppression du produit.
+
+Décisions prises et consignées :
+- **Miroir seul.** Le déplacement (`--delete1`, supprimer à la source après copie) n'est pas
+  livré et sort du périmètre de la phase 3. Motif : irréversibilité sur la boîte que
+  l'utilisateur est en train de migrer. Sera rouvert seulement si un besoin réel apparaît.
+- **Marquage par défaut, vidage en option.** Le miroir marque `\Deleted` sans expunger ;
+  imapsync expungerait de lui-même, ce comportement est donc explicitement désactivé.
+- **Confirmation saisie.** Aperçu chiffré issu de la simulation, puis saisie de `SUPPRIMER`.
+- **Limites de débit abandonnées** du périmètre de la phase 3, faute de besoin démontré ;
+  consigné ici plutôt que laissé en suspens.
+- **Progression et temps restant non livrés** : la roadmap les conditionnait à des données
+  fiables du moteur ; l'ETA d'imapsync dépend de `foldersizes` et ne l'est pas assez.
+
+Après validation de ce lot, la phase 3 est complète : filtres et volume (3a), découverte et
+correspondance (3b), historique et export (3c), miroir (3d). La phase 4 (OAuth Google et
+Microsoft) est la suite prévue.

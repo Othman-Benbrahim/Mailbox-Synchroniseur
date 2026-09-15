@@ -1,10 +1,11 @@
-# État du projet — 0.3.0 alpha 3
+# État du projet — 0.3.0 alpha 4
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
 fusionné ; les lots 3b (découverte et correspondance) et 3c (historique local et export) sont
-validés et fusionnés.** Lot 3d à faire : déplacement et miroir, premier code de suppression
-du projet.
+validés et fusionnés ; le lot 3d (miroir) est livré, testé sur le socle et vérifié
+localement, sa validation GreenMail et Windows attend le run GitHub de sa PR.** Le
+déplacement est écarté du périmètre ; voir ROADMAP.md.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -17,10 +18,41 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
-| 3 — Fonctions avancées | Lots 3a, 3b et 3c validés et fusionnés ; 3d à faire | Lot 3a : run 34916209481. Lot 3b : run 34917709552. Lot 3c : run 34918761935 |
+| 3 — Fonctions avancées | Lots 3a–3c validés et fusionnés ; lot 3d livré, validation en attente | Lot 3a : run 34916209481. Lot 3b : run 34917709552. Lot 3c : run 34918761935 |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
+
+## Lot 3d — ce qui est livré
+
+Le miroir est la **seule** fonction du produit capable de supprimer des messages, et
+uniquement à destination. `--nodelete1` est passé dans tous les modes : la boîte source
+n'est jamais touchée.
+
+- Suppression à destination de ce qui n'est plus à la source (`--delete2`), désactivée par
+  défaut. Marquage `\Deleted` seulement ; imapsync viderait de lui-même, c'est explicitement
+  désactivé (`--noexpunge2 --nouidexpunge2`). Vidage définitif derrière une option séparée.
+- Quatre garde-fous cumulés : case décochée à chaque démarrage et jamais enregistrée dans un
+  profil ; simulation réussie du même plan **miroir déjà armé** (armer invalide la simulation
+  précédente) ; aperçu du nombre exact de suppressions issu de cette simulation ;
+  confirmation par saisie de `SUPPRIMER`, un clic ne suffit pas.
+- Miroir refusé avec un filtre actif : un message masqué par un filtre serait vu comme absent
+  de la source et supprimé à destination. Refus explicite, jamais un contournement silencieux.
+- Bilan et historique indiquent le caractère destructif, le nombre de suppressions et leur
+  réversibilité ; le rapport exporté écrit « Miroir : inactif » quand il ne l'était pas.
+
+Preuves : 170 tests de socle réussis localement (26 nouveaux, `tests/test_phase3d.py`),
+dont la vérification qu'aucun mode ne passe `--delete1` et qu'une confirmation mal saisie
+ne lance rien. Deux essais IMAP réels (miroir par marquage, miroir avec vidage) réussis
+localement avec pymap substitué à GreenMail (`docs/validation-3d-pymap.xml`) : ils exigent
+que la simulation ne supprime rien, que seule la destination perde le message absent de la
+source, et que la source reste identique. Variante GreenMail et socle Windows : à valider
+par le run GitHub de la PR du lot 3d. Un test ignoré ne vaut pas réussite.
+
+Limites du lot 3d : le miroir n'est pas une synchronisation bidirectionnelle, la source fait
+autorité. Un arrêt en cours laisse la destination partiellement mise en miroir. Les
+suppressions ne sont pas annulables depuis l'application : c'est au client de messagerie de
+l'utilisateur de restaurer des messages marqués, et rien n'est récupérable après un vidage.
 
 ## Lot 3c — ce qui est livré
 
@@ -220,7 +252,10 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-Lot 3d : déplacement
+Ouvrir la PR du lot 3d, exiger 170 + 170 + 23 sans ignoré, fusionner, consigner. La phase 3
+sera alors complète. Phase 4 ensuite (OAuth Google et Microsoft).
+
+Rappel du plan initial (lot 3d : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,
 testés sur comptes jetables avant validation.
 

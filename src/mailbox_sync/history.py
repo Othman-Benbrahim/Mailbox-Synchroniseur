@@ -51,6 +51,8 @@ class Entry:
     filters: dict = field(default_factory=dict)
     counters: dict = field(default_factory=dict)
     engine_exit_code: int | None = None
+    mirror: bool = False
+    expunge: bool = False
     path: Path | None = None                          # set when read back; not serialised
 
     @property
@@ -69,7 +71,8 @@ def build(plan: Plan, report: MigrationReport, ok: bool, message: str, started: 
           finished: datetime | None = None) -> Entry:
     counters = {name: getattr(report, name) for name in
                 ("transferred", "plannable", "skipped", "errors", "missing", "unidentified",
-                 "source_bytes", "skipped_bytes", "transferred_bytes", "size_filtered")}
+                 "source_bytes", "skipped_bytes", "transferred_bytes", "size_filtered",
+                 "marked_deleted", "deleted_folders")}
     counters["destination_confirmed"] = report.destination_confirmed
     counters["estimated_bytes"] = report.estimated_bytes
     return Entry(
@@ -79,6 +82,7 @@ def build(plan: Plan, report: MigrationReport, ok: bool, message: str, started: 
         source=account_of(plan.source), destination=account_of(plan.destination),
         folders=None if plan.folders is None else [asdict(f) for f in plan.folders],
         filters=asdict(plan.filters), counters=counters, engine_exit_code=report.exit_code,
+        mirror=plan.mirror, expunge=plan.expunge,
     )
 
 
@@ -174,6 +178,9 @@ def report_text(entry: Entry) -> str:
         f"{entry.destination.get('port')} ({entry.destination.get('security')})",
         "",
         f"Filtres : {filters.describe()}",
+        ("Miroir : actif — suppressions à destination"
+         + (", vidage définitif" if entry.expunge else ", marquage « supprimé » seulement")
+         if entry.mirror else "Miroir : inactif — aucune suppression"),
     ]
     if entry.folders is None:
         lines.append("Périmètre : tous les dossiers")
@@ -190,6 +197,7 @@ def report_text(entry: Entry) -> str:
         f"Erreurs             : {_number(counters.get('errors'))}",
         f"Absents à destination: {_number(counters.get('missing'))}",
         f"Exclus par le filtre de taille : {_number(counters.get('size_filtered'))}",
+        f"Supprimés à destination : {_number(counters.get('marked_deleted'))}",
         f"Volume transféré    : {_size(counters.get('transferred_bytes'))}",
         f"Volume estimé       : {_size(counters.get('estimated_bytes'))}",
         "",

@@ -46,6 +46,8 @@ def load_profile(path: Path) -> Plan:
                 filters = Filters(**data["filters"])
         else:
             raise ValueError("Format de profil non reconnu.")
+        # mirror/expunge are deliberately absent from profiles: a destructive mode is
+        # never restored from a file, it is always re-armed by hand.
         plan = Plan(Account(**data["source"]), Account(**data["destination"]), data["engine"], folders, filters)
         plan.validate()
         return plan

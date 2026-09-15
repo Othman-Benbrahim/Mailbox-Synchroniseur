@@ -506,3 +506,64 @@ def test_history_of_a_real_run_carries_no_secret_and_matches_the_engine(pair, ap
     report = history.report_text(entry)
     assert PASSWORD not in report and "Copiés              : 2" in report
     assert snapshot(destination) == snapshot(source)
+
+
+def test_mirror_deletes_only_at_destination_and_only_after_a_matching_preview(pair, app, until, tmp_path):
+    """Real mirror against real servers: the source is never touched, the preview
+    deletes nothing, and by default the destination keeps recoverable messages.
+
+    Digests are compared within one mailbox only: MIME boundaries are random, so two
+    appends of the same message do not share a checksum.
+    """
+    source, destination, _ = pair
+    seed(source, count=2)
+    seed(destination, count=2)                       # the same two messages, already in sync
+    seed(destination, count=1, offset=100)           # one extra: the mirror must remove it
+    before_source = snapshot(source)
+    before_destination = snapshot(destination)
+    assert len(before_destination) == 3
+    extra = before_destination[-1][0]
+
+    plain = plan(pair)
+    mirror = replace(plain, mirror=True)
+    preview, report = run_sync(mirror, Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert report.marked_deleted == 1, preview.stdout
+    assert snapshot(source) == before_source
+    assert snapshot(destination) == before_destination      # a simulation deletes nothing
+
+    copied, report = run_sync(mirror, cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert report.marked_deleted == 1, copied.stdout
+    assert report.transferred == 0                          # nothing to copy, only to delete
+    assert snapshot(source) == before_source                # the source is never touched
+    remaining = snapshot(destination)
+    assert len(remaining) == 3                              # marked, not expunged
+    flagged = [digest for digest, flags, _ in remaining if b"\\Deleted" in flags]
+    assert flagged == [extra]
+    kept = [(digest, flags, date) for digest, flags, date in remaining if digest != extra]
+    assert kept == [item for item in before_destination if item[0] != extra]
+
+    # Without the mirror, the same extra message would simply have been left alone.
+    seed(destination, count=1, offset=200)
+    before_again = snapshot(destination)
+    again, report = run_sync(plain, cwd=tmp_path)
+    assert again.returncode == 0, again.stdout + again.stderr
+    assert report.marked_deleted == 0
+    assert snapshot(destination) == before_again
+
+
+def test_mirror_with_expunge_empties_the_destination_but_not_the_source(pair, app, until, tmp_path):
+    source, destination, _ = pair
+    seed(source, count=1)
+    seed(destination, count=1)
+    seed(destination, count=2, offset=100)
+    before_source = snapshot(source)
+    before_destination = snapshot(destination)
+    survivor = before_destination[0]
+    p = replace(plan(pair), mirror=True, expunge=True)
+    copied, report = run_sync(p, cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert report.marked_deleted == 2, copied.stdout
+    assert snapshot(source) == before_source
+    assert snapshot(destination) == [survivor]
