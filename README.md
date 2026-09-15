@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.3.0 alpha 4
+# Mailbox Synchroniseur — 0.4.0 alpha 1
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -9,6 +9,7 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 ## Fonctionnalités
 
 - Configurer source et destination, TLS direct ou STARTTLS.
+- Se connecter par mot de passe, mot de passe d'application ou OAuth (Microsoft, Google).
 - Enregistrer/ouvrir un profil sans les mots de passe ; inverser les comptes.
 - Piloter un imapsync installé : tester les accès, simuler, puis copier tous les dossiers ou une sélection explicite.
 - Renommer les dossiers à destination, y compris les dossiers Unicode et imbriqués.
@@ -84,6 +85,22 @@ filtre seraient vus comme absents de la source et supprimés à destination.
 
 ![Miroir](docs/miroir-phase3d.png)
 
+## Connexion OAuth
+
+Le champ « Authentification » de chaque compte propose le mot de passe (ou mot de passe
+d'application) et OAuth pour Microsoft et Google. **L'application n'embarque aucune identité
+d'application** : tu inscris la tienne chez le fournisseur et tu colles son `client_id`. La
+procédure complète, fournisseur par fournisseur, est dans [docs/OAUTH.md](docs/OAUTH.md).
+
+Pour Gmail, le mot de passe d'application reste le chemin le plus simple et fonctionne
+toujours. Pour Outlook.com et Microsoft 365, OAuth est le seul chemin possible.
+
+Le jeton obtenu reste en mémoire pour la session : jamais dans un profil, jamais dans le
+journal, jamais sur la ligne de commande. Il est écrit dans un fichier temporaire lisible
+par toi seul, que le moteur lit et qui disparaît à la fin de l'opération.
+
+![Connexion OAuth](docs/oauth-phase4a.png)
+
 ## Filtres et estimation du volume
 
 L'onglet « Filtres » restreint la sélection dans le périmètre choisi. Les dates
@@ -123,7 +140,8 @@ Après un arrêt ou une erreur, la présence complète n'est jamais annoncée.
 Le script BAT ne nécessite pas de modifier la stratégie d'exécution PowerShell.
 Il lance Python dans l'environnement du projet, sans activation manuelle.
 Un mot de passe d'application peut être nécessaire selon le fournisseur.
-Les connexions OAuth Google/Microsoft ne sont pas encore implémentées.
+Pour Outlook.com et Microsoft 365, l'authentification par mot de passe n'est plus acceptée
+par Microsoft : la connexion OAuth est obligatoire. Voir [docs/OAUTH.md](docs/OAUTH.md).
 
 Alternative PowerShell, depuis le dossier extrait :
 
@@ -175,7 +193,10 @@ taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.m
 - Les profils v1 restent lisibles ; les nouveaux profils v2 mémorisent les dossiers.
 - Un ancien lecteur v0.1 ne peut pas ouvrir les profils v2.
 - Pas de miroir, déplacement, synchronisation bidirectionnelle, contacts ou calendriers.
-- Pas de sauvegarde de mot de passe, OAuth, planification ni installateur autonome.
+- Pas de sauvegarde de mot de passe ni de jeton, pas de coffre système, pas de
+  renouvellement automatique : une session, une connexion.
+- **La connexion OAuth n'a été vérifiée contre aucun serveur IMAP réel** : voir STATUS.md.
+- Pas de planification ni d'installateur autonome.
 - Pas de limite de débit configurable ; abandonnée du périmètre de la phase 3.
 - Progression indéterminée : pas de pourcentage ou temps restant inventé.
 - Les filtres de taille ne sont pas appliqués en simulation ; l'estimation est alors un maximum.

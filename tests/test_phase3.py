@@ -254,7 +254,7 @@ for line in ("msg INBOX/7 skipped (30000 exceeds maxsize limit 4096 bytes)",
     out.write((line + "\\r\\n").encode())
 out.flush()
 ''', encoding="utf-8")
-    monkeypatch.setattr("mailbox_sync.runner.command", lambda plan, mode: (sys.executable, [str(script)]))
+    monkeypatch.setattr("mailbox_sync.runner.command", lambda plan, mode, token_files=(None, None): (sys.executable, [str(script)]))
     from mailbox_sync.runner import Runner
     runner = Runner()
     results = []

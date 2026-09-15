@@ -16,6 +16,8 @@ from .folder_selector import FolderSelector
 from .filter_selector import FilterSelector
 from .mirror_selector import MirrorSelector
 from .discovery_worker import DiscoveryWorker
+from .oauth import PROVIDERS
+from .oauth_worker import OAuthWorker
 from .history_view import HistoryView
 from . import history
 
@@ -46,6 +48,8 @@ class AccountCard(QGroupBox):
 
     def __init__(self, title):
         super().__init__(title)
+        self.token = ""
+        self.worker = None
         layout = QFormLayout(self)
         self.host = QLineEdit()
         self.host.setPlaceholderText("imap.exemple.fr")
@@ -61,14 +65,38 @@ class AccountCard(QGroupBox):
         self.security.addItem("TLS direct (993)", "SSL")
         self.security.addItem("STARTTLS (143)", "STARTTLS")
         self.security.currentIndexChanged.connect(self._security_changed)
+        self.auth = QComboBox()
+        self.auth.addItem("Mot de passe ou mot de passe d'application", "basic")
+        for key, config in PROVIDERS.items():
+            self.auth.addItem(f"OAuth — {config['label']}", key)
+        self.client_id = QLineEdit()
+        self.client_id.setPlaceholderText("Identifiant d'application (client_id) de ton inscription")
+        self.client_secret = QLineEdit()
+        self.client_secret.setEchoMode(QLineEdit.EchoMode.Password)
+        self.client_secret.setPlaceholderText("Secret client (Google uniquement)")
+        self.connect_button = QPushButton("Se connecter dans le navigateur…")
+        self.oauth_status = QLabel("Compte non connecté.")
+        self.oauth_status.setWordWrap(True)
+        self.oauth_status.setObjectName("muted")
         self.show_password = QCheckBox("Afficher")
         self.show_password.toggled.connect(lambda show: self.password.setEchoMode(
             QLineEdit.EchoMode.Normal if show else QLineEdit.EchoMode.Password))
         for label, field in (("Serveur", self.host), ("Identifiant", self.user),
+                             ("Authentification", self.auth),
                              ("Mot de passe", self.password), ("Connexion", self.security),
                              ("Port", self.port)):
             layout.addRow(label, field)
         layout.addRow("", self.show_password)
+        layout.addRow("client_id", self.client_id)
+        layout.addRow("Secret client", self.client_secret)
+        layout.addRow("", self.connect_button)
+        layout.addRow("", self.oauth_status)
+        self.auth.currentIndexChanged.connect(self._auth_changed)
+        self.connect_button.clicked.connect(self._connect)
+        for field in (self.client_id, self.client_secret):
+            field.textChanged.connect(self._forget_token)
+        self.user.textChanged.connect(self._forget_token)
+        self._auth_changed()
         for field in (self.host, self.user, self.password):
             field.textChanged.connect(self.changed)
         self.port.valueChanged.connect(self.changed)
@@ -77,17 +105,86 @@ class AccountCard(QGroupBox):
     def _security_changed(self):
         self.port.setValue(993 if self.security.currentData() == "SSL" else 143)
 
+    def _auth_changed(self):
+        provider = self.auth.currentData()
+        oauth = provider != "basic"
+        secret_needed = oauth and PROVIDERS.get(provider, {}).get("secret_required", False)
+        for widget in (self.password, self.show_password):
+            widget.setVisible(not oauth)
+        for widget in (self.client_id, self.connect_button, self.oauth_status):
+            widget.setVisible(oauth)
+        self.client_secret.setVisible(secret_needed)
+        # isVisible() is False while the window has not been shown yet, so the
+        # intended state is used rather than the current one.
+        form = self.layout()
+        for widget, wanted in ((self.password, not oauth), (self.client_id, oauth),
+                               (self.client_secret, secret_needed)):
+            label = form.labelForField(widget)
+            if label is not None:
+                label.setVisible(wanted)
+        if oauth:
+            self.password.clear()
+        self._forget_token()
+
+    def _forget_token(self):
+        """Any change to the identity or to the registration drops the token."""
+        if self.token:
+            self.token = ""
+            self.oauth_status.setText("Compte non connecté.")
+        self.changed.emit()
+
+    def _connect(self):
+        if self.worker is not None:
+            return
+        provider = self.auth.currentData()
+        if provider == "basic":
+            return
+        self.connect_button.setEnabled(False)
+        self.oauth_status.setText("Connexion en cours dans le navigateur…")
+        self.worker = OAuthWorker(provider, self.client_id.text().strip(),
+                                  self.client_secret.text().strip(), self.user.text().strip(), self)
+        self.worker.obtained.connect(self._connected)
+        self.worker.failed.connect(self._connection_failed)
+        self.worker.finished.connect(self._connection_done)
+        self.worker.start()
+
+    def _connection_done(self):
+        worker, self.worker = self.worker, None
+        if worker is not None:
+            worker.deleteLater()
+        self.connect_button.setEnabled(True)
+
+    def _connected(self, token, expires_in):
+        self.token = token
+        minutes = f" (valable environ {int(expires_in) // 60} minutes)" if expires_in else ""
+        self.oauth_status.setText(f"Compte connecté{minutes}. Le jeton reste en mémoire pour cette session.")
+        self.changed.emit()
+
+    def _connection_failed(self, message):
+        self.token = ""
+        self.oauth_status.setText(message)
+        self.changed.emit()
+
+    def secret(self):
+        """The secret handed to the engine: a password, or an OAuth access token."""
+        return self.token if self.auth.currentData() != "basic" else self.password.text()
+
     def account(self):
+        provider = self.auth.currentData()
         return Account(self.host.text().strip(), self.user.text().strip(),
-                       self.port.value(), self.security.currentData())
+                       self.port.value(), self.security.currentData(),
+                       "basic" if provider == "basic" else "oauth",
+                       "" if provider == "basic" else provider)
 
     def set_account(self, account):
         self.host.setText(account.host)
         self.user.setText(account.user)
         self.security.setCurrentIndex(self.security.findData(account.security))
         self.port.setValue(account.port)
+        self.auth.setCurrentIndex(self.auth.findData(account.provider if account.oauth else "basic"))
         self.password.clear()
         self.show_password.setChecked(False)
+        self._forget_token()
 
 
 class Window(QMainWindow):
@@ -153,7 +250,8 @@ class Window(QMainWindow):
         engine_row.addWidget(self.engine)
         engine_row.addWidget(browse)
         engine_layout.addLayout(engine_row)
-        hint = QLabel("Cette alpha utilise une installation existante d'imapsync. Connexion Google / Microsoft par navigateur prévue ultérieurement.")
+        hint = QLabel("Cette alpha utilise une installation existante d'imapsync. La connexion OAuth "
+                      "par navigateur exige une inscription d'application à ton nom : voir docs/OAUTH.md.")
         hint.setWordWrap(True)
         hint.setObjectName("muted")
         engine_layout.addWidget(hint)
@@ -232,9 +330,10 @@ class Window(QMainWindow):
         except ValueError as exc:
             self._problem(str(exc))
             return
-        passwords = (self.source.password.text(), self.destination.password.text())
+        passwords = (self.source.secret(), self.destination.secret())
         if not all(passwords):
-            self._problem("Renseigne les deux mots de passe avant de découvrir les dossiers.")
+            self._problem("Renseigne les deux mots de passe, ou connecte les comptes OAuth, "
+                          "avant de découvrir les dossiers.")
             return
         self.discovery = DiscoveryWorker(source, destination, passwords, self)
         self.discovery.proposed.connect(self._discovered)
@@ -362,7 +461,7 @@ class Window(QMainWindow):
         self.progress.setRange(0, 0)
         self.status.setText({Mode.LOGIN: "Test des accès en cours…", Mode.PREVIEW: "Simulation en cours… aucun message n'est copié.", Mode.COPY: "Copie en cours…"}[mode])
         try:
-            self.runner.start(plan, mode, (self.source.password.text(), self.destination.password.text()))
+            self.runner.start(plan, mode, (self.source.secret(), self.destination.secret()))
         except (OSError, ValueError) as exc:
             self._done(False, str(exc))
             self._problem(str(exc))
@@ -466,6 +565,7 @@ class Window(QMainWindow):
                 self.close_after_run = True
                 self._stop()
         else:
-            self.source.password.clear()
-            self.destination.password.clear()
+            for card in (self.source, self.destination):
+                card.password.clear()
+                card.token = ""
             event.accept()

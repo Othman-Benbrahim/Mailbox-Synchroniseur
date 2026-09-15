@@ -217,8 +217,8 @@ def test_resume_after_real_network_interruption(pair, app, until, tmp_path, monk
     p = plan(pair)
     routed = replace(p, source=replace(p.source, port=relay.port))
     real_command = command
-    def slow_command(plan, mode):
-        executable, args = real_command(plan, mode)
+    def slow_command(plan, mode, token_files=(None, None)):
+        executable, args = real_command(plan, mode, token_files)
         return executable, args + ["--maxmessagespersecond", "1"]
     monkeypatch.setattr("mailbox_sync.runner.command", slow_command)
     runner = Runner()

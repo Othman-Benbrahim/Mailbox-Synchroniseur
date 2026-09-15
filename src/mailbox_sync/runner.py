@@ -3,6 +3,7 @@ import codecs
 import tempfile
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, Signal
 from .engine import Redactor, command, outcome
+from .oauth import Token
 from .models import Mode, validate_passwords
 from .report import MigrationReport
 
@@ -35,18 +36,31 @@ class Runner(QObject):
     def start(self, plan, mode, passwords):
         if self.active:
             raise ValueError("Une opération est déjà en cours.")
+        Mode(mode)
         self.report = MigrationReport(mode=Mode(mode), size_filter=(
             plan.filters.max_size is not None or plan.filters.min_size is not None),
             mirror=plan.mirror and Mode(mode) != Mode.LOGIN, expunged=plan.expunge)
-        validate_passwords(passwords)
-        program, args = command(plan, mode)
+        validate_passwords(passwords, plan)
         self._temp = tempfile.TemporaryDirectory(prefix="mailbox-run-")
+        # An OAuth secret is an access token, written to a file only this user can
+        # read, inside the run's own temporary directory, removed when it ends.
+        token_files = [None, None]
+        for index, (account, secret) in enumerate(zip((plan.source, plan.destination), passwords)):
+            if account.oauth:
+                token_files[index] = Token(secret).write(self._temp.name, f"oauth-token-{index + 1}")
+        try:
+            program, args = command(plan, mode, token_files)
+        except (OSError, ValueError):
+            self._temp.cleanup()
+            self._temp = None
+            raise
         env = QProcessEnvironment.systemEnvironment()
         for name in env.keys():
             if name.startswith("IMAPSYNC_"):
                 env.remove(name)
-        for i, password in enumerate(passwords, 1):
-            env.insert(f"IMAPSYNC_PASSWORD{i}", password)
+        for i, (account, password) in enumerate(zip((plan.source, plan.destination), passwords), 1):
+            if not account.oauth:
+                env.insert(f"IMAPSYNC_PASSWORD{i}", password)
         self.process.setProcessEnvironment(env)
         self.process.setWorkingDirectory(self._temp.name)
         self._redactor = Redactor(passwords)

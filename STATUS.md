@@ -1,12 +1,13 @@
-# État du projet — 0.3.0 alpha 4
+# État du projet — 0.4.0 alpha 1
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
 fusionné ; les lots 3b (découverte et correspondance) et 3c (historique local et export) sont
 validés et fusionnés, et **la phase 3 est terminée** : le lot 3d (miroir) est validé et
 fusionné.** Le déplacement, les limites de débit et l'affichage d'une progression sont
-écartés du périmètre, avec leurs motifs dans ROADMAP.md. La phase 4 (OAuth Google et
-Microsoft) est la prochaine étape ; son implémentation n'a pas commencé.
+écartés du périmètre, avec leurs motifs dans ROADMAP.md. **La phase 4 est commencée** : le lot 4a (connexion
+OAuth) est livré et testé sur le socle, mais **il n'a été validé contre aucun serveur IMAP
+réel** — c'est l'objet du lot 4b.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -20,9 +21,40 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
 | 3 — Fonctions avancées | Terminée : lots 3a, 3b, 3c et 3d validés et fusionnés | Un run vert par lot, détaillés ci-dessous |
-| 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
+| 4 — OAuth et fournisseurs | Lot 4a livré, non validé contre un serveur réel ; lots 4b–4d à faire | 198 tests de socle ; aucun essai IMAP OAuth |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
+
+## Lot 4a — ce qui est livré
+
+- Authentification par OAuth en plus du mot de passe, pour Microsoft et Google. Flux code +
+  PKCE dans le navigateur système, redirection sur la boucle locale, vérification du `state`.
+- **Aucune identité d'application embarquée** : l'utilisateur inscrit la sienne et fournit
+  son `client_id` ; procédure complète dans `docs/OAUTH.md`.
+- Le jeton est traité comme un mot de passe : masqué dans le journal, absent des profils et
+  de l'historique, effacé à la fermeture et dès que l'identifiant, le `client_id` ou la
+  méthode d'authentification changent.
+- Le jeton n'est pas un argument de ligne de commande : il est écrit en 0600 dans le
+  répertoire temporaire de l'opération et `--oauthaccesstoken{1,2}` reçoit ce chemin. Les
+  variables `IMAPSYNC_PASSWORD` ne sont pas renseignées pour un compte OAuth.
+- Profils : `auth` et `provider` enregistrés (ce ne sont pas des secrets) ; les profils
+  antérieurs se relisent inchangés.
+
+### Ce qui n'est PAS validé
+
+**Aucune authentification XOAUTH2 réelle n'a été exercée.** GreenMail et pymap ne prennent
+pas en charge ce mécanisme, et Dovecot ne démarre pas dans l'environnement de développement
+local. Les 28 tests du lot vérifient la construction de la requête d'autorisation, le flux
+complet sur un serveur de boucle locale réel, le refus d'un `state` falsifié, la traduction
+des erreurs du fournisseur, et surtout le traitement du jeton comme secret — mais la
+dernière étape, un serveur IMAP qui accepte réellement le jeton, n'est pas couverte.
+
+En conséquence : **aucune compatibilité Gmail, Outlook.com ou Microsoft 365 n'est
+annoncée**. Le lot 4b a pour seul objet de combler ce trou, avec un serveur de test validant
+réellement le jeton, puis un essai manuel sur un compte réel.
+
+Preuves disponibles : 198 tests de socle réussis localement (28 nouveaux,
+`tests/test_phase4.py`), dont l'exécution du flux complet contre un vrai serveur HTTP local.
 
 ## Preuves de la phase 3
 
@@ -275,11 +307,11 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-Phase 4 : OAuth Google et Microsoft, dans l'ordre de ROADMAP.md — connexion dans le
-navigateur système, renouvellement des jetons, stockage dans le coffre du système,
-documentation des inscriptions d'applications, puis tests Gmail (labels) et Microsoft 365.
-Aucune compatibilité fournisseur ne doit être annoncée avant d'avoir été testée. Jusque-là,
-l'authentification reste par mot de passe ou mot de passe d'application.
+Lot 4b : valider l'authentification XOAUTH2 réelle. Piste principale, un serveur Dovecot de
+test avec `passdb oauth2` et un point d'introspection local jouant le rôle du fournisseur,
+dans la CI ; puis un essai manuel documenté sur un compte Microsoft réel, hors CI. Tant que
+ce lot n'est pas passé, l'interface propose OAuth mais aucune compatibilité fournisseur
+n'est annoncée.
 
 Rappel du plan initial (lot 3d : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,

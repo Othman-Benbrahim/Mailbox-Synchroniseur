@@ -195,3 +195,23 @@ Trois éléments du périmètre initial ne sont pas livrés, et c'est délibér�
   moteur ; l'ETA d'imapsync dépend de `foldersizes` et ne l'est pas assez.
 
 La phase 4 (OAuth Google et Microsoft) suit, sans anticipation : rien n'en est commencé.
+
+## Suivi de la livraison v0.4 alpha 1 — 15 septembre 2026 (lot 4a)
+
+Phase 4 commencée. Découpage retenu :
+- **4a — connexion OAuth** (ce lot) : flux code+PKCE dans le navigateur système, jeton passé
+  au moteur par fichier, interface et documentation d'inscription.
+- **4b — validation réelle** : faire authentifier une copie réelle en XOAUTH2 contre un
+  serveur de test qui vérifie le jeton (piste : Dovecot avec `passdb oauth2` et un point
+  d'introspection local), puis essai manuel sur un compte Microsoft réel.
+- **4c — persistance** : coffre du système et renouvellement par jeton de rafraîchissement,
+  utile surtout pour la phase 5.
+- **4d — particularités des fournisseurs** : labels Gmail, spécificités Microsoft 365.
+
+Décision consignée : **aucune identité d'application n'est embarquée**. L'utilisateur
+inscrit la sienne. Motif dans docs/ARCHITECTURE.md. Conséquence : Gmail reste plus simple
+en mot de passe d'application, seul Microsoft impose réellement OAuth.
+
+Le lot 4a **n'est pas validé** contre un serveur réel : ni GreenMail ni pymap ne
+prennent en charge XOAUTH2. C'est l'objet du lot 4b, et STATUS.md le dit explicitement.
+Aucune compatibilité Gmail ou Microsoft 365 n'est annoncée.

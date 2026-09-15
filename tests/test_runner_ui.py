@@ -29,8 +29,8 @@ time.sleep(0.02)
 sys.stdout.buffer.write(b[cut:]); sys.stdout.buffer.flush()
 print("mode=" + ("preview" if "--dry" in sys.argv else "login" if "--justlogin" in sys.argv else "copy"), flush=True)
 ''', encoding="utf-8")
-    def fixture_command(plan, mode):
-        _, args = command(plan, mode)
+    def fixture_command(plan, mode, token_files=(None, None)):
+        _, args = command(plan, mode, token_files)
         return sys.executable, [str(script), *args]
     monkeypatch.setattr("mailbox_sync.runner.command", fixture_command)
     return script

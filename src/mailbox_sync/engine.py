@@ -29,7 +29,10 @@ def search_criteria(filters: Filters) -> str | None:
     return " ".join(parts) or None
 
 
-def command(plan: Plan, mode: Mode) -> tuple[str, list[str]]:
+def command(plan: Plan, mode: Mode, token_files=(None, None)) -> tuple[str, list[str]]:
+    """token_files[i] is the path of a file holding the OAuth access token of
+    account i+1, written by the runner. The token itself never appears in the
+    arguments: imapsync reads the first line of the file."""
     plan.validate()
     mode = Mode(mode)
     engine = Path(plan.engine).expanduser().resolve()
@@ -55,6 +58,11 @@ def command(plan: Plan, mode: Mode) -> tuple[str, list[str]]:
                        f"SSL_verifycn_name={account.network_host}"):
             args += [f"--sslargs{index}", option]
         args += [f"--timeout{index}", "30"]
+        if account.oauth:
+            path = token_files[index - 1]
+            if not path:
+                raise ValueError("Connecte le compte OAuth avant de lancer l'opération.")
+            args += [f"--oauthaccesstoken{index}", str(path)]
     if mode == Mode.LOGIN:
         args += ["--justlogin"]
     elif mode == Mode.PREVIEW:
