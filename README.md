@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.3.0 alpha 3
+# Mailbox Synchroniseur — 0.3.0 alpha 4
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -18,6 +18,7 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 - Filtrer par dates et par taille de message ; lire une estimation du volume après simulation.
 - Découvrir les dossiers des deux comptes et recevoir une proposition de correspondance, à vérifier.
 - Relire l'historique local des opérations et exporter un rapport, sans mot de passe.
+- Optionnellement, mettre la destination en miroir de la source (seule fonction qui supprime).
 
 La copie est déverrouillée après une simulation réussie. Toute modification des
 comptes, ports, mots de passe, dossiers ou chemin du moteur invalide cette simulation.
@@ -59,6 +60,29 @@ fichier texte, on reprend le périmètre et les filtres d'une exécution passée
 et les mots de passe ne sont jamais rétablis), ou on supprime une entrée ou la totalité.
 
 ![Historique](docs/historique-phase3c.png)
+
+## Miroir : la seule fonction qui supprime
+
+Le miroir supprime **à destination** les messages qui n'existent plus à la source, pour que
+la destination reflète exactement la source. **La boîte source n'est jamais touchée** :
+l'application ne passe aucune option de suppression côté source, dans aucun mode.
+
+Par défaut, les messages sont seulement marqués « supprimé » à destination : ils restent
+récupérables tant que la boîte n'est pas vidée depuis le logiciel de messagerie. Le vidage
+définitif est une option distincte, irréversible.
+
+Quatre garde-fous, tous obligatoires :
+
+1. La case est décochée à chaque démarrage et n'est **jamais enregistrée dans un profil**.
+2. Une simulation réussie **du même plan, miroir déjà activé**, est exigée ; activer le
+   miroir invalide toute simulation précédente.
+3. La simulation annonce le nombre exact de suppressions, sans rien supprimer.
+4. La copie demande de **saisir SUPPRIMER** ; un clic ne suffit pas.
+
+Les filtres de dates ou de taille sont refusés avec le miroir : les messages exclus par un
+filtre seraient vus comme absents de la source et supprimés à destination.
+
+![Miroir](docs/miroir-phase3d.png)
 
 ## Filtres et estimation du volume
 
@@ -150,13 +174,15 @@ taille, estimation du volume) est validé sur ces mêmes comptes ; voir STATUS.m
 - Un ancien lecteur v0.1 ne peut pas ouvrir les profils v2.
 - Pas de miroir, déplacement, synchronisation bidirectionnelle, contacts ou calendriers.
 - Pas de sauvegarde de mot de passe, OAuth, planification ni installateur autonome.
+- Pas de limite de débit configurable ; abandonnée du périmètre de la phase 3.
 - Progression indéterminée : pas de pourcentage ou temps restant inventé.
 - Les filtres de taille ne sont pas appliqués en simulation ; l'estimation est alors un maximum.
 - L'estimation dépend des tailles annoncées par le serveur source (`RFC822.SIZE`) ; le
   volume affiché après copie est mesuré sur les octets réels.
 - Les messages exclus par un filtre de taille sont comptés par imapsync comme absents à
   destination ; le bilan les identifie séparément et ne les cache pas.
-- Pas de miroir ni de déplacement (lot 3d).
+- Pas de déplacement (copier puis supprimer à la source) : volontairement non livré.
+- Le miroir n'est pas une synchronisation bidirectionnelle : la source fait autorité.
 - L'historique est local et en clair : il contient adresses, serveurs et noms de dossiers.
   Le supprimer depuis l'onglet ou effacer les fichiers si ces informations sont sensibles.
 - La découverte utilise le magasin de certificats de Python, la copie celui de l'installation

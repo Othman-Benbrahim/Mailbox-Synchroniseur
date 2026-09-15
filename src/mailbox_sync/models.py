@@ -121,6 +121,12 @@ class Plan:
     engine: str
     folders: tuple[FolderMapping, ...] | None = None
     filters: Filters = Filters()
+    mirror: bool = False          # delete at the destination what is no longer at the source
+    expunge: bool = False         # empty the destination instead of only marking \Deleted
+
+    @property
+    def destructive(self):
+        return bool(self.mirror)
 
     def validate(self):
         self.source.validate()
@@ -134,6 +140,15 @@ class Plan:
             raise ValueError("La source et la destination désignent le même compte.")
         if not self.engine.strip():
             raise ValueError("Sélectionne l'exécutable imapsync dans la configuration.")
+        if type(self.mirror) is not bool or type(self.expunge) is not bool:
+            raise ValueError("Option de miroir invalide.")
+        if self.expunge and not self.mirror:
+            raise ValueError("Le vidage de la destination n'a de sens qu'avec le miroir.")
+        if self.mirror and self.filters.active:
+            # A filter hides source messages from the engine; mirroring would then delete
+            # perfectly legitimate messages at the destination. Refused, never silently.
+            raise ValueError("Le miroir est incompatible avec un filtre : les messages exclus "
+                             "par le filtre seraient supprimés à destination.")
 
         if self.folders is not None:
             if not isinstance(self.folders, tuple) or not self.folders:

@@ -35,8 +35,17 @@ def command(plan: Plan, mode: Mode) -> tuple[str, list[str]]:
     engine = Path(plan.engine).expanduser().resolve()
     if not engine.is_file():
         raise ValueError("Exécutable imapsync introuvable. Sélectionne son fichier.")
-    args = ["--noreleasecheck", "--nolog", "--noexpunge1", "--noexpunge2",
+    # Never --delete1: the source is never touched, in any mode.
+    args = ["--noreleasecheck", "--nolog", "--noexpunge1", "--nodelete1",
             "--noresyncflags", "--regexflag", r"s/\\Deleted//g"]
+    mirror = plan.mirror and mode != Mode.LOGIN
+    if mirror:
+        args += ["--delete2"]
+        # --delete2 turns on uidexpunge2 (or expunge2) by itself. Marking \Deleted without
+        # emptying is the default here, so the user can still recover the messages.
+        args += ["--expunge2", "--nouidexpunge2"] if plan.expunge else ["--noexpunge2", "--nouidexpunge2"]
+    else:
+        args += ["--noexpunge2"]
     for index, account in enumerate((plan.source, plan.destination), 1):
         args += [f"--host{index}", account.network_host, f"--user{index}", account.user,
                  f"--port{index}", str(account.port)]
