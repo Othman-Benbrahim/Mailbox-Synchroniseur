@@ -264,3 +264,62 @@ def test_starttls_unavailable_never_falls_back_to_cleartext(pair, tmp_path):
     assert result.returncode == 12, result.stdout + result.stderr
     assert "Can not go to tls encryption on host1" in result.stdout
     assert snapshot(pair[1]) == []
+
+
+def test_dovecot_strict_quota_refuses_append_and_resumes(quota_pair, app, until, tmp_path):
+    source, destination, _ = quota_pair
+    seed(source, count=1)
+    seed(destination, count=2, offset=100)
+    before_source, before_destination = snapshot(source), snapshot(destination)
+    p = plan(quota_pair)
+
+    preview, _ = run_sync(p, Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert snapshot(source) == before_source
+    assert snapshot(destination) == before_destination
+
+    # Actual server rejection, not a mocked APPEND or an announced quota alone.
+    client = destination.connect()
+    try:
+        status, response = client.append("INBOX", "(\\Seen)", DATE, message(999))
+        assert status == "NO", response
+        assert b"OVERQUOTA" in b" ".join(response).upper(), response
+    finally:
+        client.logout()
+    assert snapshot(destination) == before_destination
+
+    runner = Runner()
+    results, lines = [], []
+    runner.done.connect(lambda ok, text: results.append((ok, text)))
+    runner.line.connect(lines.append)
+    runner.start(p, Mode.COPY, (PASSWORD, PASSWORD))
+    try:
+        until(lambda: bool(results), seconds=45)
+        assert not results[0][0], results
+        assert any("OVERQUOTA" in line.upper() for line in lines), "\n".join(lines)
+        assert runner.report.errors is not None and runner.report.errors > 0
+        assert runner.report.transferred == 0
+        assert not runner.report.destination_confirmed
+        assert snapshot(source) == before_source
+        assert snapshot(destination) == before_destination
+    finally:
+        if runner.active:
+            runner.stop()
+            until(lambda: not runner.active, seconds=5)
+
+    # Restart the same destination with more space, retaining its Maildir.
+    destination.increase_quota()
+    assert snapshot(destination) == before_destination
+    preview, _ = run_sync(p, Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert snapshot(destination) == before_destination
+    copied, report = run_sync(p, cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert report.transferred == 1 and report.destination_confirmed
+    expected = before_destination + before_source
+    assert snapshot(destination) == expected
+    assert snapshot(source) == before_source
+    repeated, report = run_sync(p, cwd=tmp_path)
+    assert repeated.returncode == 0, repeated.stdout + repeated.stderr
+    assert report.transferred == 0 and report.destination_confirmed
+    assert snapshot(destination) == expected

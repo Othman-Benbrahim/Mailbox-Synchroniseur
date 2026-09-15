@@ -25,3 +25,7 @@ Dépendances des essais IMAP uniquement, téléchargées séparément :
 Les sources et empreintes des téléchargements du moteur et de GreenMail sont dans
 `scripts/prepare_integration.py`. Ces outils ne sont ni installés ni exécutés par
 le lancement normal de l'application. Aucun serveur IMAP ne fait partie du produit.
+
+- Dovecot 2.3.21 : serveur des tests de quota strict, installé séparément depuis
+  Ubuntu 24.04, jamais embarqué dans l'application. Sources et licences :
+  https://github.com/dovecot/core/tree/2.3.21 ; notices du paquet Ubuntu applicables.

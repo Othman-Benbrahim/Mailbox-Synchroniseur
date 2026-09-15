@@ -7,7 +7,7 @@ Reprise du dépôt GitHub initial `Othman-Benbrahim/Mailbox-Synchroniseur`, comm
 | --- | --- | --- |
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha conservé | Tests existants maintenus, interface Qt ouverte |
-| 2 — Migrations vérifiées | Implémentée, qualification encore partielle | 13 tests IMAP réels réussis ; refus APPEND par quota strict restant |
+| 2 — Migrations vérifiées | Implémentée, qualification encore partielle | 13 tests IMAP validés ; test Dovecot strict ajouté, résultat CI attendu |
 | 3 — Fonctions avancées | À faire | Attendre la fermeture du jalon 2 |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
@@ -41,10 +41,17 @@ filtré. Les expunges, suppressions et resynchronisations d'états restent désa
 ## Limites et prochain jalon
 
 Le test de quota vérifie un quota annoncé plein et le statut d'échec du moteur.
-GreenMail continue d'accepter APPEND : il reste à tester un serveur appliquant un
-quota strict et refusant effectivement l'ajout. **La phase 2 n'est donc pas déclarée
+GreenMail continue d'accepter APPEND. Un nouveau test Dovecot 2.3.21 exige maintenant
+un refus APPEND OVERQUOTA, puis une reprise après augmentation du quota sans perte
+ni recopie. Sa configuration a été acceptée par doveconf et les 56 tests du socle
+passent localement ; son exécution réelle est réservée à GitHub Actions car les
+sockets Unix nécessaires à Dovecot sont interdits dans ce runtime. **La phase 2 n'est donc pas déclarée
 entièrement terminée.** Ne pas passer aux modes destructeurs de phase 3.
 
-Windows/macOS, fournisseurs réels, gros volumes et installateur autonome ne sont
-pas validés. Le workflow CI est fourni ; aucun résultat GitHub Actions n'est revendiqué.
+La PR #1 est fusionnée au commit `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`.
+Le [run 34910039980](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34910039980)
+a réussi sur son dernier commit : socle Linux/Windows et 13 essais IMAP Linux.
+Le correctif du test de nettoyage Windows et les bibliothèques Qt de CI sont inclus.
+Cela ne qualifie pas les migrations Windows, macOS, fournisseurs réels, gros volumes
+ni l'installateur autonome. Voir `docs/QUOTA-STRICT.md` pour fermer le dernier critère.
 Les contrôles SHA-256 appartiennent aux tests, pas au bilan affiché par l'application.
