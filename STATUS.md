@@ -340,16 +340,26 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
   et reste remplaçable ; la simulation préalable et les autres garanties sont inchangées.
 - THIRD_PARTY.md énumère les composants réellement distribués et leurs obligations.
 
-### Ce qui n'est PAS éprouvé
+### Premier run — ce qui est désormais éprouvé
 
-**Aucune de ces constructions n'a jamais été exécutée.** L'environnement de développement
-n'a ni Windows, ni Strawberry Perl, ni Inno Setup. Seuls l'empaquetage PyInstaller sous
-Linux et le contrat de détection du moteur ont été vérifiés localement ; 11 tests
-(`tests/test_phase6.py`) couvrent ce contrat, 223 tests de socle au total.
+Le premier run de la chaîne (PR #16, commit `a053c21`) a montré l'inverse de ce qui était
+redouté. **La construction du moteur a réussi en deux minutes** : modules CPAN installés,
+PAR::Packer a produit un `imapsync.exe` répondant `2.314`. L'empaquetage PyInstaller a
+réussi, l'exécutable produit démarre et annonce sa version, le binaire du moteur est vérifié,
+et l'application détecte le moteur placé à côté d'elle.
 
-La construction d'imapsync par PAR::Packer sous Windows est le point le plus incertain :
-plusieurs modules CPAN n'ont pas de binaire Windows et dépendent d'OpenSSL. Le premier run
-dira ce qui manque.
+Seule la compilation de l'installateur a échoué, sur une erreur de syntaxe PowerShell :
+`"$env:ProgramFiles(x86)\..."` est lu comme `$env:ProgramFiles` suivi du texte littéral
+`(x86)`. Les accolades sont obligatoires autour d'un nom de variable contenant des
+parenthèses. Corrigé, avec recherche d'`ISCC.exe` dans les deux emplacements possibles et
+échec explicite s'il reste introuvable.
+
+### Ce qui n'est toujours PAS éprouvé
+
+**L'installateur n'a jamais été produit ni installé.** Il reste à vérifier qu'il se
+compile, qu'il s'installe sur une machine Windows dépourvue de Python et de Perl, et qu'une
+migration de référence y aboutisse. 11 tests (`tests/test_phase6.py`) couvrent le contrat de
+détection du moteur, 223 tests de socle au total.
 
 La phase 6 ne sera consignée comme validée qu'après un run vert **et** une installation
 réussie sur une machine Windows sans Python ni Perl, avec une migration de référence.

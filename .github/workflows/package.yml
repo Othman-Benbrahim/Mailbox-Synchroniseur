@@ -84,7 +84,18 @@ jobs:
         run: |
           choco install innosetup -y --no-progress
           $version = python -c "import sys; sys.path.insert(0,'src'); import mailbox_sync; print(mailbox_sync.__version__)"
-          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" /DAppVersion=$version packaging/installer.iss
+          # Le nom de variable contient des parenthèses : les accolades sont obligatoires,
+          # sinon PowerShell lit $env:ProgramFiles suivi du texte littéral "(x86)".
+          $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"),
+            (Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe")
+          )
+          $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe introuvable dans : $($candidates -join ' ; ')" }
+          Write-Host "Compilateur : $iscc"
+          & $iscc /DAppVersion=$version packaging/installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "La compilation de l'installateur a échoué ($LASTEXITCODE)." }
+          Get-ChildItem packaging/Output | Format-Table Name, Length
       - uses: actions/upload-artifact@v4
         with:
           name: installateur-${{ github.run_id }}
