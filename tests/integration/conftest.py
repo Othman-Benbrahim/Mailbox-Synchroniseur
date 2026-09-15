@@ -18,6 +18,11 @@ IMAPSYNC_SHA256 = "89faed96f7c389723ddd7e78a00421b90d5b85bf79407fcf1b11209f3d4d7
 GREENMAIL_SHA256 = "9457fdaf45ded6c87bf84a321a5ced4b4b5e72b1d03686b778df381378afc4c8"
 
 
+@pytest.fixture(autouse=True)
+def history_directory(tmp_path, monkeypatch):
+    monkeypatch.setenv("MAILBOX_HISTORY_DIR", str(tmp_path / "historique"))
+
+
 @pytest.fixture(scope="session")
 def integration_tools(tmp_path_factory):
     if os.environ.get("MAILBOX_INTEGRATION") != "1":

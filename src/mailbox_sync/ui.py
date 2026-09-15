@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 import shutil
 from PySide6.QtCore import Qt, Signal
@@ -13,6 +14,8 @@ from .runner import Runner
 from .folder_selector import FolderSelector
 from .filter_selector import FilterSelector
 from .discovery_worker import DiscoveryWorker
+from .history_view import HistoryView
+from . import history
 
 STYLE = """
 QWidget { font-family: 'Segoe UI', 'DejaVu Sans'; font-size: 13px; color: #192d42; }
@@ -97,6 +100,8 @@ class Window(QMainWindow):
         self.current_mode = None
         self.close_after_run = False
         self.discovery = None
+        self.started_at = None
+        self.history_directory = None
         self.runner = Runner(self)
         self.runner.line.connect(self._line)
         self.runner.done.connect(self._done)
@@ -155,6 +160,9 @@ class Window(QMainWindow):
         self.config.addTab(self.folders, "Dossiers à copier")
         self.filters = FilterSelector()
         self.config.addTab(self.filters, "Filtres")
+        self.history = HistoryView(self.history_directory)
+        self.history.reuse_requested.connect(self._reuse)
+        self.config.addTab(self.history, "Historique")
         outer.addWidget(self.config)
         self.scope = QLabel("Périmètre : tous les dossiers · Filtres : aucun · Source → destination · Simulation requise avant copie")
         self.scope.setWordWrap(True)
@@ -331,6 +339,7 @@ class Window(QMainWindow):
         self.summary.setText("Bilan en attente…")
         self.current_plan = plan
         self.current_mode = mode
+        self.started_at = datetime.now(timezone.utc)
         self.config.setEnabled(False)
         self.login.setEnabled(False)
         self.preview.setEnabled(False)
@@ -363,11 +372,40 @@ class Window(QMainWindow):
             self.preview_plan = self.current_plan
             message = "Simulation terminée. Vérifie le journal, puis lance la copie."
         self.copy.setEnabled(self.preview_plan is not None)
+        self._record(ok, message)
         self.status.setText(message)
         self.summary.setText(self.runner.report.text())
         self._line(message)
         if self.close_after_run:
             self.close()
+
+    def _record(self, ok, message):
+        """A finished run is kept locally, without secrets. A failure to write is
+        reported once and never blocks the operation itself."""
+        if self.current_plan is None or self.started_at is None:
+            return
+        try:
+            entry = history.build(self.current_plan, self.runner.report, ok, message, self.started_at)
+            history.save(entry, self.history_directory)
+        except (OSError, ValueError) as exc:
+            self._line(f"L'opération n'a pas pu être ajoutée à l'historique : {exc}")
+            return
+        finally:
+            self.started_at = None
+        self.history.refresh()
+
+    def _reuse(self, entry):
+        """Reuse the scope of a past run: folders and filters only, never a secret."""
+        from .models import Filters
+        self.folders.load(history.mappings_of(entry))
+        try:
+            self.filters.load(Filters(**entry.filters))
+        except (TypeError, ValueError):
+            self.filters.load(Filters())
+        self.config.setCurrentWidget(self.folders)
+        self._invalidate()
+        self.status.setText("Périmètre et filtres repris de l'historique. "
+                            "Vérifie les comptes, ressaisis les mots de passe, puis simule.")
 
     def _problem(self, message):
         self.status.setText(message)
