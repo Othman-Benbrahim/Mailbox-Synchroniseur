@@ -3,9 +3,10 @@
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
 fusionné ; les lots 3b (découverte et correspondance) et 3c (historique local et export) sont
-validés et fusionnés ; le lot 3d (miroir) est livré, testé sur le socle et vérifié
-localement, sa validation GreenMail et Windows attend le run GitHub de sa PR.** Le
-déplacement est écarté du périmètre ; voir ROADMAP.md.
+validés et fusionnés, et **la phase 3 est terminée** : le lot 3d (miroir) est validé et
+fusionné.** Le déplacement, les limites de débit et l'affichage d'une progression sont
+écartés du périmètre, avec leurs motifs dans ROADMAP.md. La phase 4 (OAuth Google et
+Microsoft) est la prochaine étape ; son implémentation n'a pas commencé.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -18,10 +19,32 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
-| 3 — Fonctions avancées | Lots 3a–3c validés et fusionnés ; lot 3d livré, validation en attente | Lot 3a : run 34916209481. Lot 3b : run 34917709552. Lot 3c : run 34918761935 |
+| 3 — Fonctions avancées | Terminée : lots 3a, 3b, 3c et 3d validés et fusionnés | Un run vert par lot, détaillés ci-dessous |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
+
+## Preuves de la phase 3
+
+Chaque lot a été fusionné après un run GitHub vert sur ses trois tâches : socle sous
+Ubuntu 24.04, le même socle sous windows-latest, et les essais IMAP réels sous Ubuntu 24.04
+avec imapsync 2.314, GreenMail 2.1.3, pymap 0.36.7 et Dovecot 2.3.21. Le commit testé n'est
+jamais le commit de fusion.
+
+| Lot | Run | Commit testé | Fusion | Socle | Essais IMAP |
+| --- | --- | --- | --- | --- | --- |
+| 3a — filtres et volume | [34916209481](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481) | `10637f2` | `1f3ddf5` | 111 | 18 |
+| 3b — découverte et correspondance | [34917709552](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) | `7065672` | `74c1b70` | 131 | 20 |
+| 3c — historique et export | [34918761935](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34918761935) | `b5b68cf` | `ffd4018` | 144 | 21 |
+| 3d — miroir | run de la PR #10 | `562d67e` | `25750fc` | 170 | 23 |
+
+Le lot 3d a été régénéré sur `1b38ef9` après un conflit documentaire ; son code est celui
+déjà passé au run 34919944554, revalidé par le run de la PR #10 sur `562d67e`, dont
+les six vérifications étaient au vert. Les rapports `imap-results.xml` sont attachés aux runs.
+
+Ce que cette validation ne couvre pas, pour toute la phase : migrations réelles sous Windows
+et macOS, grands volumes, Gmail et Microsoft 365, et toute particularité de fournisseur.
+Les serveurs de test sont des fixtures déterministes.
 
 ## Lot 3d — ce qui est livré
 
@@ -46,8 +69,8 @@ dont la vérification qu'aucun mode ne passe `--delete1` et qu'une confirmation 
 ne lance rien. Deux essais IMAP réels (miroir par marquage, miroir avec vidage) réussis
 localement avec pymap substitué à GreenMail (`docs/validation-3d-pymap.xml`) : ils exigent
 que la simulation ne supprime rien, que seule la destination perde le message absent de la
-source, et que la source reste identique. Variante GreenMail et socle Windows : à valider
-par le run GitHub de la PR du lot 3d. Un test ignoré ne vaut pas réussite.
+source, et que la source reste identique. Les variantes GreenMail et le socle Windows ont ensuite été
+validés par la CI ; voir le tableau des preuves ci-dessus.
 
 Limites du lot 3d : le miroir n'est pas une synchronisation bidirectionnelle, la source fait
 autorité. Un arrêt en cours laisse la destination partiellement mise en miroir. Les
@@ -252,8 +275,11 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-Ouvrir la PR du lot 3d, exiger 170 + 170 + 23 sans ignoré, fusionner, consigner. La phase 3
-sera alors complète. Phase 4 ensuite (OAuth Google et Microsoft).
+Phase 4 : OAuth Google et Microsoft, dans l'ordre de ROADMAP.md — connexion dans le
+navigateur système, renouvellement des jetons, stockage dans le coffre du système,
+documentation des inscriptions d'applications, puis tests Gmail (labels) et Microsoft 365.
+Aucune compatibilité fournisseur ne doit être annoncée avant d'avoir été testée. Jusque-là,
+l'authentification reste par mot de passe ou mot de passe d'application.
 
 Rappel du plan initial (lot 3d : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,

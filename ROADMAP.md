@@ -171,6 +171,27 @@ Décisions prises et consignées :
 - **Progression et temps restant non livrés** : la roadmap les conditionnait à des données
   fiables du moteur ; l'ETA d'imapsync dépend de `foldersizes` et ne l'est pas assez.
 
-Après validation de ce lot, la phase 3 est complète : filtres et volume (3a), découverte et
+**Le lot 3d est validé et fusionné** : le run de la PR #10 a réussi sur le commit
+`562d67e`, fusionné dans `25750fc` (170 tests de socle sous Linux et Windows,
+23 essais IMAP réels). Après une première tentative en conflit documentaire, le lot a été
+régénéré sur `1b38ef9` sans modification de code.
+
+La phase 3 est complète : filtres et volume (3a), découverte et
 correspondance (3b), historique et export (3c), miroir (3d). La phase 4 (OAuth Google et
 Microsoft) est la suite prévue.
+
+## Clôture de la phase 3 — 15 septembre 2026
+
+La phase 3 est terminée. Les quatre lots sont fusionnés, chacun après un run vert :
+3a filtres et estimation du volume, 3b découverte et correspondance des dossiers,
+3c historique local et export de rapports, 3d miroir. STATUS.md porte le tableau des
+preuves (runs, commits testés, commits de fusion, nombres de tests).
+
+Trois éléments du périmètre initial ne sont pas livrés, et c'est délibéré :
+- **déplacement** (copier puis supprimer à la source) : écarté, irréversible sur une boîte
+  en cours de migration ;
+- **limites de débit** : abandonnées, aucun besoin démontré ;
+- **progression et temps restant** : la roadmap les conditionnait à des données fiables du
+  moteur ; l'ETA d'imapsync dépend de `foldersizes` et ne l'est pas assez.
+
+La phase 4 (OAuth Google et Microsoft) suit, sans anticipation : rien n'en est commencé.
