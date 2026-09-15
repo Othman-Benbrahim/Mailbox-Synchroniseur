@@ -134,8 +134,9 @@ est actif, et le bilan l'indique. Choix discuté et accepté pour ce lot.
 
 ## Suivi de la livraison v0.3 alpha 2 — 15 septembre 2026 (lot 3b)
 
-Lot 3b implémenté : découverte des dossiers et proposition de correspondance, validée par
-l'utilisateur dans le tableau existant, sans lever l'obligation de simulation.
+**Lot 3b validé et fusionné** : découverte des dossiers et proposition de correspondance,
+validée par l'utilisateur dans le tableau existant, sans lever l'obligation de simulation.
+Le [run 34917709552](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) a réussi sur le commit `7065672cc367272950aca0d502ba1cb998ce80f9`, fusionné dans `74c1b706e60019a02cca078674c0ec378c462072`.
 
 Écart consigné : l'application émet désormais elle-même une commande IMAP (`LIST`, lecture
 seule) pour la découverte. AGENTS.md interdit un moteur IMAP maison à la place d'imapsync ;

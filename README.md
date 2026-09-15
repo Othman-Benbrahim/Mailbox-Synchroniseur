@@ -169,7 +169,8 @@ Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-
 a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
 réels sous Linux. Le [run de validation du lot 3a](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34916209481)
 a réussi : 111 tests du socle sous Linux et Windows, 18 essais IMAP réels sous Linux.
-Le lot 3b ajoute 20 tests de socle (131) et 2 essais IMAP réels (20).
+Le [run de validation du lot 3b](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) a réussi :
+131 tests du socle sous Linux et Windows, 20 essais IMAP réels sous Linux.
 [STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.

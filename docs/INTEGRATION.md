@@ -105,10 +105,10 @@ exécution locale.
 ## Lot 3b — état de validation
 
 L'essai `test_discovery_lists_folders_over_verified_tls_and_proposal_drives_a_real_copy`
-est paramétré GreenMail/pymap (20 essais IMAP au total). Variante pymap réussie localement
-contre imapsync 2.314 réel le 15 septembre 2026 (`docs/validation-3b-pymap.xml`) ;
-variante GreenMail et socle Windows à valider par le run de la PR du lot 3b. STATUS.md
-est la référence.
+est paramétré GreenMail/pymap (20 essais IMAP au total). La variante pymap a réussi
+localement contre imapsync 2.314 réel le 15 septembre 2026 (`docs/validation-3b-pymap.xml`),
+la variante GreenMail par le [run 34917709552](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) sur le commit `7065672cc367272950aca0d502ba1cb998ce80f9`, dont les trois
+tâches sont au vert.
 
 ## Résultat de fermeture — 15 septembre 2026
 

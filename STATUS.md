@@ -2,9 +2,8 @@
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
-fusionné ; le lot 3b (découverte des dossiers et proposition de correspondance) est
-implémenté, testé sur le socle et vérifié localement contre imapsync réel en STARTTLS ;
-sa validation GreenMail et Windows attend le run GitHub de sa PR.** Lots 3c et 3d à faire.
+fusionné ; le lot 3b (découverte des dossiers et proposition de correspondance) est validé
+et fusionné.** Lots 3c et 3d à faire.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -17,7 +16,7 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 0 — Cadrage | Terminée | Roadmap, architecture, licence et structure initiales conservées |
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
-| 3 — Fonctions avancées | Lot 3a validé et fusionné ; lot 3b implémenté, validation partielle ; 3c–3d à faire | Lot 3a : run 34916209481. Lot 3b : 131 tests de socle et essai IMAP pymap réussis localement ; GreenMail et Windows en attente |
+| 3 — Fonctions avancées | Lots 3a et 3b validés et fusionnés ; 3c–3d à faire | Lot 3a : run 34916209481. Lot 3b : run 34917709552 |
 | 4 — OAuth et fournisseurs | À faire | Google / Microsoft non validés |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
@@ -36,11 +35,18 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 - Décodage UTF-7 modifié tolérant ; lecteur `LIST` pour noms cités, atomes, littéraux.
 - Retrait du dossier `ci-results/` commité par erreur dans la PR #5 ; ajouté au `.gitignore`.
 
-Preuves : 131 tests de socle réussis localement (20 nouveaux, `tests/test_phase3b.py`) ;
-essai IMAP `test_discovery_lists_folders_over_verified_tls_and_proposal_drives_a_real_copy`
-(variante pymap/STARTTLS) réussi localement contre imapsync 2.314 réel, rapport
-`docs/validation-3b-pymap.xml`. Variante GreenMail et socle Windows : à valider par le run
-GitHub de la PR du lot 3b. Un test ignoré ne vaut pas réussite.
+### Preuve de validation du lot 3b
+
+Le [run GitHub 34917709552](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34917709552) a réussi sur le commit `7065672cc367272950aca0d502ba1cb998ce80f9` de la PR #6,
+ensuite fusionné dans `74c1b706e60019a02cca078674c0ec378c462072`. Ses trois tâches sont au vert : socle sous Ubuntu 24.04
+et sous windows-latest (131 tests chacune), et intégration IMAP sous Ubuntu 24.04
+(20 essais avec imapsync 2.314 réel, GreenMail, pymap et Dovecot). Le rapport
+`imap-results.xml` est attaché au run.
+
+Avant ce run, l'essai
+`test_discovery_lists_folders_over_verified_tls_and_proposal_drives_a_real_copy`
+avait été exécuté localement en variante pymap/STARTTLS contre imapsync 2.314 réel
+(`docs/validation-3b-pymap.xml`) ; la variante GreenMail a été validée par la CI.
 
 Limites du lot 3b : la découverte utilise le magasin de certificats de Python, la copie
 celui de Perl ; les rôles reconnus par nom couvrent le français et l'anglais usuels, pas
@@ -182,8 +188,7 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
 
 ## Prochaine action
 
-Ouvrir la PR du lot 3b, exiger 131 + 131 + 20 sans ignoré, fusionner, consigner. Puis
-lot 3c : historique local et export de rapports sans secrets. Lot 3d ensuite : déplacement
+Lot 3c : historique local et export de rapports sans secrets. Lot 3d ensuite : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,
 testés sur comptes jetables avant validation.
 
