@@ -212,6 +212,7 @@ Décision consignée : **aucune identité d'application n'est embarquée**. L'ut
 inscrit la sienne. Motif dans docs/ARCHITECTURE.md. Conséquence : Gmail reste plus simple
 en mot de passe d'application, seul Microsoft impose réellement OAuth.
 
-Le lot 4a **n'est pas validé** contre un serveur réel : ni GreenMail ni pymap ne
+Le lot 4a est fusionné dans `431dabf` (commit testé `41579c2`, run de la PR #12 vert
+sur ses trois tâches). Il **n'est pas validé** contre un serveur réel : ni GreenMail ni pymap ne
 prennent en charge XOAUTH2. C'est l'objet du lot 4b, et STATUS.md le dit explicitement.
 Aucune compatibilité Gmail ou Microsoft 365 n'est annoncée.

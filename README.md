@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.4.0 alpha 1
+# Mailbox Synchroniseur — 0.4.0 alpha 2
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -16,6 +16,7 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 - Lire un bilan : copiés, ignorés, erreurs et présence des messages identifiés à destination.
 - Arrêter un processus ; relancer une simulation avant reprise.
 - Lire un journal de session avec masquage des mots de passe connus.
+- Interface lisible quel que soit le thème du système, clair ou sombre.
 - Filtrer par dates et par taille de message ; lire une estimation du volume après simulation.
 - Découvrir les dossiers des deux comptes et recevoir une proposition de correspondance, à vérifier.
 - Relire l'historique local des opérations et exporter un rapport, sans mot de passe.

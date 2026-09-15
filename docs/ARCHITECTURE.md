@@ -16,6 +16,7 @@
 - `mirror_selector.py` : armement du miroir, seule fonction destructive (lot 3d).
 - `oauth.py` : flux OAuth code+PKCE sur boucle locale, sans identité embarquée (lot 4a).
 - `oauth_worker.py` : exécution du flux hors du fil d'interface (lot 4a).
+- `theme.py` : palette claire explicite, indépendante du thème du système.
 - `report.py` : compteurs observés et conditions de confirmation de destination.
 - `ui.py` : source/destination, simulation préalable, exécution et bilan.
 
@@ -215,3 +216,20 @@ des profils et de l'historique, effacé à la fermeture et dès que l'identifian
 `--oauthaccesstoken{1,2}` sous forme de chemin de fichier dont il lit la première ligne, et
 le runner écrit ce fichier en 0600 dans le répertoire temporaire de l'opération, supprimé à
 la fin. Les variables `IMAPSYNC_PASSWORD{1,2}` ne sont pas renseignées pour un compte OAuth.
+
+## Lisibilité et thème du système
+
+Qt suit la palette de la plateforme. L'application ne fixait qu'une partie des couleurs :
+sur un système en thème sombre, tout widget non couvert par la feuille de style recevait un
+fond sombre alors que la couleur de texte restait sombre — texte illisible, signalé en usage
+réel sous Windows. Deux corrections conjointes : `theme.py` déclare une palette claire
+complète (groupes actif, inactif et désactivé) et impose le style Fusion, qui respecte la
+palette de la même façon sur toutes les plateformes ; et la feuille de style énonce fond et
+couleur de texte pour chaque famille de widgets utilisée, y compris les onglets, tableaux,
+listes, listes déroulantes, calendrier et boîtes de dialogue.
+
+Les tests vérifient qu'une palette système sombre est bien remplacée, que les rapports de
+contraste tiennent (texte courant, texte désactivé, ligne sélectionnée) selon la formule de
+luminance relative WCAG, et qu'aucune famille de widgets n'est laissée sans couleurs. Le
+journal et les zones de sortie gardent leur fond sombre volontaire, désigné par
+`objectName("log")` plutôt que par leur classe.

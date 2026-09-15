@@ -24,6 +24,7 @@ class HistoryView(QWidget):
         self.list = QListWidget()
         self.list.setMinimumWidth(320)
         self.detail = QPlainTextEdit()
+        self.detail.setObjectName("log")
         self.detail.setReadOnly(True)
         self.detail.setPlaceholderText("Sélectionne une opération pour afficher son rapport.")
         splitter.addWidget(self.list)

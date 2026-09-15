@@ -36,6 +36,7 @@ class FolderSelector(QWidget):
         row.addStretch()
         layout.addLayout(row)
         self.explanations = QPlainTextEdit()
+        self.explanations.setObjectName("log")
         self.explanations.setReadOnly(True)
         self.explanations.setMaximumHeight(140)
         self.explanations.setPlaceholderText("La proposition de correspondance et ses raisons apparaîtront ici. "
