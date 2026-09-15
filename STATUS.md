@@ -1,13 +1,15 @@
-# État du projet — 0.4.0 alpha 1
+# État du projet — 0.4.0 alpha 2
 
 Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
 validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
 fusionné ; les lots 3b (découverte et correspondance) et 3c (historique local et export) sont
 validés et fusionnés, et **la phase 3 est terminée** : le lot 3d (miroir) est validé et
 fusionné.** Le déplacement, les limites de débit et l'affichage d'une progression sont
-écartés du périmètre, avec leurs motifs dans ROADMAP.md. **La phase 4 est commencée** : le lot 4a (connexion
-OAuth) est livré et testé sur le socle, mais **il n'a été validé contre aucun serveur IMAP
-réel** — c'est l'objet du lot 4b.
+écartés du périmètre, avec leurs motifs dans ROADMAP.md. **La phase 4 est suspendue après le lot 4a** : la
+connexion OAuth est fusionnée après un run vert, mais elle n'a été validée contre aucun
+serveur IMAP réel, et l'inscription d'application côté Microsoft s'est révélée hors de
+portée du public visé. Motif et conséquences ci-dessous. Une CI verte ne vaut pas ici
+compatibilité fournisseur.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -21,9 +23,22 @@ Le lot 3a a été livré par la PR #4 (branche `phase-3/filtres`) et fusionné d
 | 1 — Application exécutable | Socle alpha validé | Tests du socle/interface sous Linux et Windows |
 | 2 — Migrations vérifiées | Terminée sur comptes de test isolés | 14 essais IMAP réels, dont refus de quota strict et reprise |
 | 3 — Fonctions avancées | Terminée : lots 3a, 3b, 3c et 3d validés et fusionnés | Un run vert par lot, détaillés ci-dessous |
-| 4 — OAuth et fournisseurs | Lot 4a livré, non validé contre un serveur réel ; lots 4b–4d à faire | 198 tests de socle ; aucun essai IMAP OAuth |
+| 4 — OAuth et fournisseurs | Lot 4a fusionné, non validé contre un serveur réel ; **suite suspendue** | Run de la PR #12 : 198 tests de socle Linux et Windows, 23 essais IMAP ; aucun essai IMAP OAuth |
 | 5 — Automatisation | À faire | Aucun service en arrière-plan |
 | 6 — Distribution autonome | À faire | Aucun installateur ou moteur embarqué livré |
+
+## Correctif 0.4.0 alpha 2 — lisibilité sous thème sombre
+
+Signalé en usage réel : sous un système en thème sombre, l'interface s'affichait en texte
+sombre sur fond sombre, illisible. Cause : la feuille de style ne couvrait qu'une partie des
+widgets, le reste héritant de la palette sombre de la plateforme. Correction : palette claire
+complète déclarée par l'application (`theme.py`) avec le style Fusion, et feuille de style
+énonçant fond et texte pour chaque famille de widgets. 14 tests ajoutés
+(`tests/test_theme.py`), dont la vérification des rapports de contraste WCAG et le
+remplacement effectif d'une palette système sombre.
+
+Limite : l'application impose un thème clair ; elle ne suit pas encore le thème sombre du
+système. Un vrai thème sombre est une évolution distincte, non planifiée à ce jour.
 
 ## Lot 4a — ce qui est livré
 
@@ -53,8 +68,12 @@ En conséquence : **aucune compatibilité Gmail, Outlook.com ou Microsoft 365 n'
 annoncée**. Le lot 4b a pour seul objet de combler ce trou, avec un serveur de test validant
 réellement le jeton, puis un essai manuel sur un compte réel.
 
-Preuves disponibles : 198 tests de socle réussis localement (28 nouveaux,
-`tests/test_phase4.py`), dont l'exécution du flux complet contre un vrai serveur HTTP local.
+Preuves disponibles : le run GitHub de la PR #12 a réussi sur le commit `41579c2`,
+fusionné dans `431dabf` — 198 tests du socle sous Ubuntu 24.04 et sous windows-latest,
+23 essais IMAP réels (inchangés : ce lot n'en ajoute aucun). Les 28 nouveaux tests sont dans
+`tests/test_phase4.py` et comprennent l'exécution du flux complet contre un vrai serveur HTTP
+de boucle locale. Ce que ce run prouve, c'est la mécanique du flux et le traitement du jeton
+comme secret — pas qu'un serveur IMAP accepte ce jeton.
 
 ## Preuves de la phase 3
 
@@ -305,13 +324,37 @@ Voir [INTEGRATION.md](docs/INTEGRATION.md) et [QUOTA-STRICT.md](docs/QUOTA-STRIC
   sans en-têtes) fausse l'estimation d'autant ; le volume transféré affiché après copie
   reste, lui, mesuré sur les octets réels.
 
+## Pourquoi la phase 4 est suspendue
+
+Le lot 4a repose sur une hypothèse qui s'est révélée fausse à l'épreuve : que l'utilisateur
+puisse inscrire sa propre application chez le fournisseur.
+
+Microsoft documente que la connexion au centre d'administration Entra avec un compte
+personnel (Outlook.com, Hotmail) rattache au tenant « Microsoft Services », dans lequel
+aucun annuaire ne permet d'agir. La création automatique d'un annuaire lié à un compte
+personnel a été supprimée ; la voie officielle est de créer un compte Azure, donc un tenant.
+L'inscription d'application reste gratuite, mais l'ouverture du compte Azure demande une
+carte bancaire. Constaté en usage réel le 15 septembre 2026, erreur `AADSTS50020`.
+
+Conséquence : pour le public visé — des particuliers qui migrent une boîte personnelle —
+l'OAuth Microsoft de cette application n'est pas praticable. Poursuivre les lots 4b à 4d
+(validation XOAUTH2 réelle, coffre système, particularités des fournisseurs) reviendrait à
+perfectionner un chemin que ces utilisateurs ne peuvent pas emprunter.
+
+Ce qui reste vrai et utilisable : Gmail continue de fonctionner avec un mot de passe
+d'application, sans OAuth. Le code du lot 4a reste en place et fonctionnel pour qui dispose
+déjà d'un tenant Entra — il n'est ni retiré ni désactivé, seulement non validé et non promis.
+
+Ce qui rouvrirait la phase 4 : soit une identité d'application embarquée dans le projet et
+inscrite au nom du mainteneur — décision non prise, elle l'engage personnellement — soit un
+changement de politique de Microsoft.
+
 ## Prochaine action
 
-Lot 4b : valider l'authentification XOAUTH2 réelle. Piste principale, un serveur Dovecot de
-test avec `passdb oauth2` et un point d'introspection local jouant le rôle du fournisseur,
-dans la CI ; puis un essai manuel documenté sur un compte Microsoft réel, hors CI. Tant que
-ce lot n'est pas passé, l'interface propose OAuth mais aucune compatibilité fournisseur
-n'est annoncée.
+Phase 6 (distribution) plutôt que la suite des phases 4 et 5 ; changement d'ordre consigné
+dans ROADMAP.md avec son motif. Un installateur Windows autonome embarquant imapsync est ce
+qui manque réellement aux utilisateurs visés, alors que l'automatisation de la phase 5
+suppose un stockage de secrets qui relevait de la phase 4.
 
 Rappel du plan initial (lot 3d : déplacement
 et miroir, désactivés par défaut, avec aperçu et confirmation séparés des suppressions,

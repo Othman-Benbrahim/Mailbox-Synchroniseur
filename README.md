@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.4.0 alpha 1
+# Mailbox Synchroniseur — 0.4.0 alpha 2
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -9,13 +9,14 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 ## Fonctionnalités
 
 - Configurer source et destination, TLS direct ou STARTTLS.
-- Se connecter par mot de passe, mot de passe d'application ou OAuth (Microsoft, Google).
+- Se connecter par mot de passe ou mot de passe d'application ; OAuth présent mais non validé.
 - Enregistrer/ouvrir un profil sans les mots de passe ; inverser les comptes.
 - Piloter un imapsync installé : tester les accès, simuler, puis copier tous les dossiers ou une sélection explicite.
 - Renommer les dossiers à destination, y compris les dossiers Unicode et imbriqués.
 - Lire un bilan : copiés, ignorés, erreurs et présence des messages identifiés à destination.
 - Arrêter un processus ; relancer une simulation avant reprise.
 - Lire un journal de session avec masquage des mots de passe connus.
+- Interface lisible quel que soit le thème du système, clair ou sombre.
 - Filtrer par dates et par taille de message ; lire une estimation du volume après simulation.
 - Découvrir les dossiers des deux comptes et recevoir une proposition de correspondance, à vérifier.
 - Relire l'historique local des opérations et exporter un rapport, sans mot de passe.
@@ -93,7 +94,9 @@ d'application** : tu inscris la tienne chez le fournisseur et tu colles son `cli
 procédure complète, fournisseur par fournisseur, est dans [docs/OAUTH.md](docs/OAUTH.md).
 
 Pour Gmail, le mot de passe d'application reste le chemin le plus simple et fonctionne
-toujours. Pour Outlook.com et Microsoft 365, OAuth est le seul chemin possible.
+toujours. Pour Microsoft, OAuth serait le seul chemin, mais l'inscription d'application exige
+un tenant Entra qu'un compte personnel n'a pas : le développement de cette partie est
+suspendu et la fonction n'est utilisable que si tu disposes déjà d'un tenant.
 
 Le jeton obtenu reste en mémoire pour la session : jamais dans un profil, jamais dans le
 journal, jamais sur la ligne de commande. Il est écrit dans un fichier temporaire lisible
@@ -140,8 +143,10 @@ Après un arrêt ou une erreur, la présence complète n'est jamais annoncée.
 Le script BAT ne nécessite pas de modifier la stratégie d'exécution PowerShell.
 Il lance Python dans l'environnement du projet, sans activation manuelle.
 Un mot de passe d'application peut être nécessaire selon le fournisseur.
-Pour Outlook.com et Microsoft 365, l'authentification par mot de passe n'est plus acceptée
-par Microsoft : la connexion OAuth est obligatoire. Voir [docs/OAUTH.md](docs/OAUTH.md).
+Pour Outlook.com et Microsoft 365, Microsoft n'accepte plus le mot de passe, et l'inscription
+d'application nécessaire à l'OAuth est hors de portée d'un compte personnel :
+**cette application ne propose pas de chemin praticable pour une boîte Outlook.com
+personnelle.** Raisons dans [docs/OAUTH.md](docs/OAUTH.md) et STATUS.md.
 
 Alternative PowerShell, depuis le dossier extrait :
 
