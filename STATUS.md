@@ -1,15 +1,25 @@
-# État du projet — 0.6.0 alpha 1
+# État du projet — 0.6.0
 
-Mise à jour du 15 septembre 2026. **La phase 2 est terminée pour le périmètre de
-validation sur comptes de test isolés.** **La phase 3 est en cours : le lot 3a (filtres, estimation du volume) est validé et
-fusionné ; les lots 3b (découverte et correspondance) et 3c (historique local et export) sont
-validés et fusionnés, et **la phase 3 est terminée** : le lot 3d (miroir) est validé et
-fusionné.** Le déplacement, les limites de débit et l'affichage d'une progression sont
-écartés du périmètre, avec leurs motifs dans ROADMAP.md. **La phase 4 est suspendue après le lot 4a** : la
-connexion OAuth est fusionnée après un run vert, mais elle n'a été validée contre aucun
-serveur IMAP réel, et l'inscription d'application côté Microsoft s'est révélée hors de
-portée du public visé. Motif et conséquences ci-dessous. Une CI verte ne vaut pas ici
-compatibilité fournisseur.
+Mise à jour du 15 septembre 2026. Première version publiée.
+
+| Phase | État |
+| --- | --- |
+| 0 — Cadrage | Terminée |
+| 1 — Application exécutable | Terminée |
+| 2 — Migrations vérifiées | Terminée sur comptes de test isolés |
+| 3 — Fonctions avancées | Terminée : filtres, découverte et correspondance, historique, miroir |
+| 4 — OAuth et fournisseurs | **Suspendue après le lot 4a**, motif ci-dessous |
+| 5 — Automatisation | Repoussée : elle suppose un stockage de secrets relevant de la phase 4 |
+| 6 — Distribution autonome | Terminée pour Windows ; ni Linux, ni macOS, ni signature |
+
+La phase 4 est suspendue parce que l'inscription d'application exigée par Microsoft s'est
+révélée hors de portée d'un compte personnel. La connexion OAuth est livrée et fusionnée
+mais n'a été validée contre aucun serveur IMAP réel : une intégration continue verte ne vaut
+pas ici compatibilité fournisseur. Le déplacement, les limites de débit et l'affichage d'une
+progression sont écartés du périmètre, motifs dans ROADMAP.md.
+
+Le détail de chaque phase, les preuves nommées lot par lot et les limites conservées
+suivent ci-dessous.
 
 Le projet reprend le commit initial `eedaa95843118c4d2ed23ec791cf50f319ce00ae`.
 La PR #1 a été fusionnée dans `3d5b7de9c94f347aceba4ae839c9284fe93b52c7`, puis
@@ -429,3 +439,4 @@ Rappel de l'ordre initial des lots (lot 3b : correspondance automatique des doss
    l'utilisateur. Lot 3c : historique local et export de rapports sans secrets.
    Lot 3d : déplacement et miroir, désactivés par défaut, avec aperçu et confirmation
    séparés des suppressions, testés sur comptes jetables avant validation.
+
