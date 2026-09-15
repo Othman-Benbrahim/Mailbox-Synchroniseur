@@ -111,3 +111,21 @@ puis reprise après augmentation du quota, est validé. La PR #2 est fusionnée 
 STATUS.md consigne les preuves et leurs limites. Cette clôture ne vaut pas
 qualification de migrations Windows/macOS, de fournisseurs réels ou de grands volumes.
 La phase 3 est la prochaine étape, sans code de phase 3 livré dans cette mise à jour.
+
+## Suivi de la livraison v0.3 alpha 1 — 15 septembre 2026
+
+Le périmètre et l'ordre du plan version 1 sont conservés. La phase 3 est découpée en
+lots livrés par PR séparées, dans cet ordre : 3a filtres par dates et taille et
+estimation du volume ; 3b correspondance automatique des dossiers ; 3c historique
+local et export de rapports ; 3d déplacement et miroir. Raison : isoler le premier
+code de suppression (3d) des fonctions sans risque, et permettre une validation
+IMAP réelle par lot.
+
+**Le lot 3a est implémenté** (PR #4, branche `phase-3/filtres`). Sa validation IMAP
+réelle dépend du run GitHub de cette PR ; STATUS.md en consigne l'état. Progression
+et temps restant restent absents : les données du moteur (`ETA` fondée sur les
+tailles de dossiers) ne sont pas jugées assez fiables pour un affichage.
+
+Écart consigné : la simulation ne peut pas appliquer le filtre de taille sans
+télécharger la source (`--nodry1`). L'estimation est donc un maximum quand ce filtre
+est actif, et le bilan l'indique. Choix discuté et accepté pour ce lot.

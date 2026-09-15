@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import datetime
 from enum import Enum
 import ipaddress
 import re
@@ -59,16 +60,74 @@ class FolderMapping:
             raise ValueError("Un nom de dossier source contenant = n'est pas pris en charge en sélection manuelle.")
 
 
+def parse_date(value: str) -> datetime.date:
+    """Strict ISO calendar date (AAAA-MM-JJ). Anything else is refused."""
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        raise ValueError("Renseigne les dates au format AAAA-MM-JJ.")
+    try:
+        return datetime.date.fromisoformat(value)
+    except ValueError:
+        raise ValueError("Date de filtre invalide.") from None
+
+
+@dataclass(frozen=True)
+class Filters:
+    """Optional message selection. All fields None means no filter at all.
+
+    Dates are ISO strings applied by the server on the IMAP internal date
+    (INTERNALDATE), both bounds inclusive. Sizes are bytes of the raw message
+    (RFC822.SIZE): messages strictly larger than max_size or smaller than or
+    equal to min_size are skipped by the engine and counted as skipped.
+    """
+    since: str | None = None
+    until: str | None = None
+    max_size: int | None = None
+    min_size: int | None = None
+
+    def validate(self):
+        since = parse_date(self.since) if self.since is not None else None
+        until = parse_date(self.until) if self.until is not None else None
+        if since and until and since > until:
+            raise ValueError("La date de début du filtre doit précéder la date de fin.")
+        for value in (self.max_size, self.min_size):
+            if value is not None and (type(value) is not int or value <= 0 or value > 2**40):
+                raise ValueError("Les tailles de filtre doivent être des entiers strictement positifs.")
+        if self.max_size is not None and self.min_size is not None and self.max_size <= self.min_size:
+            raise ValueError("La taille maximale doit dépasser la taille minimale.")
+
+    @property
+    def active(self):
+        return any(value is not None for value in (self.since, self.until, self.max_size, self.min_size))
+
+    def describe(self):
+        parts = []
+        if self.since and self.until:
+            parts.append(f"du {self.since} au {self.until}")
+        elif self.since:
+            parts.append(f"depuis le {self.since}")
+        elif self.until:
+            parts.append(f"jusqu'au {self.until}")
+        if self.max_size is not None:
+            parts.append(f"taille ≤ {self.max_size // 1024} Kio")
+        if self.min_size is not None:
+            parts.append(f"taille > {self.min_size // 1024} Kio")
+        return ", ".join(parts) if parts else "aucun filtre"
+
+
 @dataclass(frozen=True)
 class Plan:
     source: Account
     destination: Account
     engine: str
     folders: tuple[FolderMapping, ...] | None = None
+    filters: Filters = Filters()
 
     def validate(self):
         self.source.validate()
         self.destination.validate()
+        if not isinstance(self.filters, Filters):
+            raise ValueError("Filtres invalides.")
+        self.filters.validate()
         if (self.source.host.rstrip(".").casefold(), self.source.port, self.source.user) == (
             self.destination.host.rstrip(".").casefold(), self.destination.port, self.destination.user
         ):

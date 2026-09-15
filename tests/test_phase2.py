@@ -44,6 +44,7 @@ def test_profiles_v2_and_legacy(tmp_path):
     assert load_profile(path) == p
     data = json.loads(path.read_text())
     data.pop("folders")
+    data.pop("filters")
     data["version"] = 1
     path.write_text(json.dumps(data))
     assert load_profile(path) == base()

@@ -1,4 +1,4 @@
-# Mailbox Synchroniseur — 0.2.0 alpha 1
+# Mailbox Synchroniseur — 0.3.0 alpha 1
 
 Application de bureau en français pour copier des messages entre deux comptes
 IMAP, en pilotant le moteur libre imapsync. Le développement suit [ROADMAP.md](ROADMAP.md).
@@ -15,6 +15,7 @@ L'état réel et les prochaines étapes sont dans [STATUS.md](STATUS.md).
 - Lire un bilan : copiés, ignorés, erreurs et présence des messages identifiés à destination.
 - Arrêter un processus ; relancer une simulation avant reprise.
 - Lire un journal de session avec masquage des mots de passe connus.
+- Filtrer par dates et par taille de message ; lire une estimation du volume après simulation.
 
 La copie est déverrouillée après une simulation réussie. Toute modification des
 comptes, ports, mots de passe, dossiers ou chemin du moteur invalide cette simulation.
@@ -30,6 +31,24 @@ convertis en UTF-7 modifié IMAP. Les collisions dans la sélection sont refusé
 Refaire une simulation après toute modification et consulter le journal avant copie.
 
 ![Sélection des dossiers](docs/dossiers-phase2.png)
+
+## Filtres et estimation du volume
+
+L'onglet « Filtres » restreint la sélection dans le périmètre choisi. Les dates
+sont appliquées par le serveur sur la date interne IMAP de chaque message (date de
+réception ou d'archivage, pas l'en-tête « Date »), bornes incluses. Les tailles
+portent sur le message brut complet, pièces jointes incluses. Un filtre modifié
+invalide la simulation. Les profils v3 mémorisent les filtres ; les profils v1 et v2
+restent lisibles.
+
+Après une simulation, le bilan indique le nombre de messages à copier et un volume
+estimé, calculé par différence entre la taille des messages sélectionnés à la source
+et celle des messages ignorés, tels qu'imapsync les publie. Le filtre de taille
+n'est appliqué que pendant la copie, car la simulation ne télécharge pas les
+messages : dans ce cas l'estimation est un maximum et le bilan le précise.
+Le bilan de copie affiche le volume réellement transféré.
+
+![Filtres](docs/filtres-phase3.png)
 
 Le bilan reprend les compteurs publiés par imapsync 2.314. Un compteur absent vaut
 « non communiqué ». La présence confirmée concerne les messages identifiés par le
@@ -94,8 +113,8 @@ reprise après coupure TCP et absence de recopies sur les fixtures.
 Les migrations Windows, Gmail et Microsoft 365 ne sont pas encore validées.
 La phase 2 est validée sur ces comptes de test, y compris le refus d'ajout par
 quota strict et la reprise après augmentation du quota : voir
-[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). Les filtres, l'historique et les autres
-fonctions de phase 3 constituent la prochaine étape du développement.
+[QUOTA-STRICT.md](docs/QUOTA-STRICT.md). La phase 3 a commencé par les filtres
+et l'estimation du volume (lot 3a) ; son état de validation est dans STATUS.md.
 
 - Sélection manuelle par noms exacts ; pas de découverte automatique des dossiers.
 - Ajouter chaque sous-dossier séparément. La destination vide conserve le nom source.
@@ -104,6 +123,12 @@ fonctions de phase 3 constituent la prochaine étape du développement.
 - Pas de miroir, déplacement, synchronisation bidirectionnelle, contacts ou calendriers.
 - Pas de sauvegarde de mot de passe, OAuth, planification ni installateur autonome.
 - Progression indéterminée : pas de pourcentage ou temps restant inventé.
+- Les filtres de taille ne sont pas appliqués en simulation ; l'estimation est alors un maximum.
+- L'estimation dépend des tailles annoncées par le serveur source (`RFC822.SIZE`) ; le
+  volume affiché après copie est mesuré sur les octets réels.
+- Les messages exclus par un filtre de taille sont comptés par imapsync comme absents à
+  destination ; le bilan les identifie séparément et ne les cache pas.
+- Pas de correspondance automatique des dossiers, de miroir, de déplacement ni d'historique.
 - Pas de resynchronisation des états des messages déjà présents dans cette alpha.
 - Les erreurs du moteur signifient qu'une copie peut être partielle ; arrêter
   n'annule pas les messages déjà copiés.
@@ -128,7 +153,7 @@ sont vérifiés avec le moteur simulé. Les essais réels nécessitent les dépe
 de [docs/INTEGRATION.md](docs/INTEGRATION.md). Aucun compte utilisateur n'est utilisé.
 Le [run de fermeture de la phase 2](https://github.com/Othman-Benbrahim/Mailbox-Synchroniseur/actions/runs/34911811074)
 a réussi : les 56 tests du socle sous Linux et Windows, et les 14 essais IMAP
-réels sous Linux. [STATUS.md](STATUS.md) identifie le commit testé et les limites
-de cette validation.
+réels sous Linux. Le lot 3a ajoute 55 tests de socle (111 au total) et 4 essais IMAP
+réels (18 au total). [STATUS.md](STATUS.md) identifie ce qui est validé et par quel run.
 
 Licence MIT pour le code original. Voir LICENSE et THIRD_PARTY.md pour les composants.
