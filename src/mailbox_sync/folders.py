@@ -19,3 +19,30 @@ def imap_utf7(name: str) -> str:
             pending.append(char)
     flush()
     return "".join(parts)
+
+
+def imap_utf7_decode(name: str) -> str:
+    """Inverse of imap_utf7, tolerant: an invalid shifted section is kept verbatim."""
+    parts, index = [], 0
+    while index < len(name):
+        char = name[index]
+        if char != "&":
+            parts.append(char)
+            index += 1
+            continue
+        end = name.find("-", index + 1)
+        if end < 0:
+            parts.append(name[index:])
+            break
+        section = name[index + 1:end]
+        if section == "":
+            parts.append("&")
+        else:
+            encoded = section.replace(",", "/")
+            try:
+                raw = base64.b64decode(encoded + "=" * (-len(encoded) % 4), validate=True)
+                parts.append(raw.decode("utf-16-be"))
+            except (ValueError, UnicodeDecodeError):
+                parts.append(name[index:end + 1])
+        index = end + 1
+    return "".join(parts)

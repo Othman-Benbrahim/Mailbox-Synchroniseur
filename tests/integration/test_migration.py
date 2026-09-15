@@ -429,3 +429,46 @@ def test_size_filter_skips_large_messages_and_accounts_for_them(request, tmp_pat
     assert report.transferred == 1 and report.size_filtered == 0 and report.destination_confirmed
     assert sorted(snapshot(destination)) == sorted(
         (digest, flags - {b"\\Deleted"}, date) for digest, flags, date in before_source)
+
+
+@pytest.mark.parametrize("kind", ["SSL", "STARTTLS"])
+def test_discovery_lists_folders_over_verified_tls_and_proposal_drives_a_real_copy(request, tmp_path, kind):
+    from mailbox_sync.discovery import DiscoveryError, list_folders
+    from mailbox_sync.mapping import propose
+    pair, unfiltered = filtered_plan(request, kind)
+    source, destination, _ = pair
+    seed(source, count=1)
+    seed(source, "Envoyés", count=2, offset=20)
+    seed(source, "Archives/Été", count=1, offset=40)
+    seed(destination, "Sent Items", count=1, offset=100)
+    before_sent_items = snapshot(destination, "Sent Items")
+
+    # Read-only discovery with the same TLS requirements as the engine.
+    listed_source = list_folders(unfiltered.source, PASSWORD)
+    listed_destination = list_folders(unfiltered.destination, PASSWORD)
+    assert {"INBOX", "Envoyés", "Archives/Été"} <= {f.name for f in listed_source}
+    assert {"INBOX", "Sent Items"} <= {f.name for f in listed_destination}
+    assert all(f.raw == imap_utf7(f.name) for f in listed_source)
+    with pytest.raises(DiscoveryError):
+        list_folders(unfiltered.source, "wrong")
+    with pytest.raises(DiscoveryError):   # certificate is for "localhost", not for the IP
+        list_folders(replace(unfiltered.source, host="127.0.0.1"), PASSWORD)
+    assert snapshot(destination, "Sent Items") == before_sent_items   # nothing written by discovery
+
+    proposals = propose(listed_source, listed_destination)
+    mappings = {p.source: p.mapping for p in proposals if p.mapping is not None}
+    assert mappings["INBOX"] == FolderMapping("INBOX", "")
+    assert mappings["Envoyés"] == FolderMapping("Envoyés", "Sent Items")
+    assert mappings["Archives/Été"] == FolderMapping("Archives/Été", "")
+    selected = tuple(p.mapping for p in proposals if p.mapping is not None)
+    p = replace(unfiltered, folders=selected)
+    preview, _ = run_sync(p, Mode.PREVIEW, cwd=tmp_path)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    copied, report = run_sync(p, cwd=tmp_path)
+    assert copied.returncode == 0, copied.stdout + copied.stderr
+    assert report.transferred == 4 and report.destination_confirmed
+    expected_sent = before_sent_items + [(d, f - {b"\\Deleted"}, t) for d, f, t in snapshot(source, "Envoyés")]
+    assert snapshot(destination, "Sent Items") == expected_sent
+    assert snapshot(destination, "Archives/Été") == snapshot(source, "Archives/Été")
+    assert snapshot(destination) == snapshot(source)
+    assert snapshot(destination, "Envoyés") == []
